@@ -1,5 +1,6 @@
 export let terrainStyle=0;
 export function setTerrain(style:number){terrainStyle=style;}
+export function bridgeCenterZ(){return terrainStyle===2?0:34;}
 const smooth=(v:number)=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v);};
 // Smooth plateaux and long access ramps: identical sampling for driving and rendering.
 export function terrainHeight(x:number,z:number){

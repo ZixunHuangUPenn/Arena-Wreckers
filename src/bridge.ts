@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import {terrainHeight} from './terrain';
+import {terrainHeight,bridgeCenterZ} from './terrain';
 import type {Rect} from './physics';
-export const BRIDGE={z:34,halfWidth:4,span:12,end:38,height:9};
+export const BRIDGE={get z(){return bridgeCenterZ();},halfWidth:4,span:12,end:38,height:9};
 export function deckHeight(x:number,z:number){const b=BRIDGE,a=Math.abs(x);if(Math.abs(z-b.z)>b.halfWidth||a>b.end)return null;const t=Math.max(0,(a-b.span)/(b.end-b.span));return b.height*(1-t)+terrainHeight(Math.sign(x)*b.end,z)*t;}
 export function driveHeight(x:number,z:number,previousY:number){const deck=deckHeight(x,z);return deck!==null&&(Math.abs(x)>BRIDGE.span||previousY>deck-2.5)?deck:terrainHeight(x,z);}
 export function bridgeHit(x:number,y:number,z:number,dx:number,dy:number,dz:number){for(let i=0;i<=16;i++){const t=i/16,h=deckHeight(x+dx*t,z+dz*t);if(h!==null&&y+dy*t>=h-.45&&y+dy*t<=h+.12)return t;}return null;}
