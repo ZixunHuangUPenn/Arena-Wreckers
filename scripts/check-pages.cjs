@@ -1,0 +1,8 @@
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
+const sw=fs.readFileSync('dist/sw.js','utf8'),context={self:{addEventListener(){}},URL};vm.createContext(context);vm.runInContext(sw+';globalThis.result={BASE,FILES,PREFIX,CACHE};',context);const {BASE,FILES,PREFIX}=context.result;
+assert(BASE.startsWith('/')&&BASE.endsWith('/'));
+for(const url of FILES){assert(url.startsWith(BASE),`cache escaped base: ${url}`);const relative=url.slice(BASE.length)||'index.html';assert(fs.existsSync(path.join('dist',relative)),`missing cached asset: ${url}`);}
+const html=fs.readFileSync('dist/index.html','utf8');for(const match of html.matchAll(/(?:src|href)="([^"]+)"/g)){const url=match[1];if(url.startsWith('http'))continue;assert(url.startsWith(BASE),`HTML escaped base: ${url}`);assert(fs.existsSync(path.join('dist',url.slice(BASE.length))));}
+const manifest=JSON.parse(fs.readFileSync('dist/manifest.webmanifest'));assert.equal(manifest.scope,'./');assert.equal(manifest.start_url,'./');assert.equal(manifest.icons[0].src,'icon.svg');
+for(const name of fs.readdirSync('dist/assets/models').filter(n=>n.endsWith('.gltf'))){const modelPath=path.resolve('dist/assets/models',name),model=JSON.parse(fs.readFileSync(modelPath));for(const item of [...model.buffers||[],...model.images||[]]){if(item.uri&&!item.uri.startsWith('data:'))assert(fs.existsSync(path.resolve(path.dirname(modelPath),item.uri)),`broken glTF dependency: ${name}: ${item.uri}`);}}
+assert(PREFIX.includes(Buffer.from(BASE).toString('hex')));console.log(`PASS Pages base ${BASE}, ${FILES.length} cache URLs, HTML links, relative PWA scope, glTF dependencies, isolated cache namespace`);
