@@ -9,3 +9,6 @@
 #gameUI #missile{position:absolute;right:134px;bottom:80px;width:88px;height:54px;background:linear-gradient(#9c7045,#4f3929);border:2px solid #cbb083;font-size:13px;border-radius:6px}#gameUI #missile:disabled{filter:grayscale(.8);opacity:.65}#shell .briefing{padding:12px;margin:10px 0;border-left:3px solid #b5a56d;background:#111e19bd}#shell .briefing strong{font-size:14px;color:#d3c690}#shell .briefing p{font-size:11px;line-height:1.6;color:#b8c4b5;margin:6px 0}
 
 #gameUI #threat{display:none;position:absolute;top:190px;left:50%;transform:translateX(-50%);max-width:300px;padding:8px 13px;border:1px solid #f3935d;background:#4a211aeb;color:#ffe0af;font-size:13px;text-align:center;box-shadow:0 3px 15px #0009;pointer-events:none}.portrait #gameUI #threat{top:300px}#gameUI #hitDirection{display:none;position:absolute;left:50%;top:50%;width:140px;height:140px;border-top:5px solid #ff835c;border-radius:50%;pointer-events:none;filter:drop-shadow(0 0 5px #f54221)}
+
+#gameUI #hud .bar {height:12px}
+#gameUI .enemy-health > div, #healthbars .enemy-health > div {height:7px}
