@@ -23,6 +23,44 @@ type Shot={homing?:Car;weapon:number;mesh:THREE.Mesh; velocity:THREE.Vector3; tt
 type Particle={mesh:THREE.Mesh; velocity:THREE.Vector3; ttl:number; initial:number};
 const app=document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML=interfaceMarkup();
+const picker = document.createElement('dialog');
+picker.innerHTML = '<h2>选择游玩方式</h2><button value="mobile">移动端 · 触屏</button> <button value="web">网页端 · 键盘鼠标</button>';
+picker.style.cssText = 'margin:auto;padding:2rem;background:#17202a;color:white;border:1px solid #a98656;border-radius:12px;text-align:center';
+app.append(picker);
+picker.addEventListener('cancel', event => event.preventDefault());
+picker.showModal();
+const touchHelp = '左侧驾驶 · 按住开火自动瞄准 · 拖动手动瞄准';
+const webHelp = 'WASD 驾驶 · 空格自动瞄准开火 · E 导弹 · Q 技能 · Esc 暂停';
+let mobileMode = false;
+picker.addEventListener('click', async event => {
+  const button = (event.target as HTMLElement).closest('button');
+  if (!button) return;
+  mobileMode = button.value === 'mobile';
+  document.documentElement.dataset.playMode = button.value;
+  picker.close();
+  const help = mobileMode ? touchHelp : webHelp;
+  document.querySelector('#help')!.textContent = help;
+  const briefing = document.querySelector('.briefing p:last-child');
+  if (briefing) briefing.textContent = help;
+  document.querySelectorAll<HTMLElement>('.field-manual p').forEach(row => {
+    const title = row.querySelector('b')?.textContent;
+    if (title === '电脑') { row.hidden = mobileMode; row.textContent = webHelp; }
+    if (title === '双摇杆' || title === '方向盘') row.hidden = !mobileMode;
+  });
+  if (!mobileMode) return;
+  try { await document.documentElement.requestFullscreen?.(); } catch {}
+  const orientation = screen.orientation as ScreenOrientation & {lock?: (mode:string)=>Promise<void>};
+  try { await orientation?.lock?.('landscape'); } catch {}
+});
+const modeStyles = document.createElement('style');
+modeStyles.textContent = `
+dialog::backdrop {background:#101820f5}
+dialog button {padding:1em;margin:.4em;cursor:pointer}
+html[data-play-mode=web] #controls, html[data-play-mode=web] #inputModes {display:none!important}
+.field-manual [hidden] {display:none!important}
+@media (orientation:portrait) {html[data-play-mode=mobile] body::after {content:"请将设备横放游玩";position:fixed;inset:0;display:grid;place-items:center;background:#101820;color:white;z-index:2147483647}}
+`;
+document.head.append(modeStyles);
 let selectedArena=profileStore.data.arena,activeArena=-1;
 let layoutState=fitGameLayout(innerWidth,innerHeight),modelsReady=typeof window==='undefined',assetProgress='资源准备中',assetPromise:Promise<boolean>=Promise.resolve(modelsReady);
 let gameUI:HTMLElement|null=null,safeProbe:HTMLElement|null=null;
@@ -128,7 +166,8 @@ for(const event of ['pointerup','pointercancel','lostpointercapture'])wheel.addE
 const driveStick=document.querySelector<HTMLElement>('#driveStick')!,aimPad=document.querySelector<HTMLElement>('#fire')!;
 function stickInput(e:PointerEvent,el:HTMLElement){const r=el.getBoundingClientRect(),x=(e.clientX-r.left-r.width/2)/(r.width*.36),y=(e.clientY-r.top-r.height/2)/(r.height*.36),length=Math.max(1,Math.hypot(x,y));return {x:x/length,y:y/length};}
 driveStick.addEventListener('pointerdown',e=>{if(driveId!==null)return;driveId=e.pointerId;driveStick.setPointerCapture(e.pointerId);const v=stickInput(e,driveStick);driveX=v.x;driveY=v.y;});driveStick.addEventListener('pointermove',e=>{if(e.pointerId!==driveId)return;const v=stickInput(e,driveStick);driveX=v.x;driveY=v.y;});
-aimPad.addEventListener('pointerdown',e=>{if(aimId!==null)return;aimId=e.pointerId;aimPad.setPointerCapture(e.pointerId);touchFire=true;const v=stickInput(e,aimPad);aimX=v.x;aimY=v.y;});aimPad.addEventListener('pointermove',e=>{if(e.pointerId!==aimId)return;const v=stickInput(e,aimPad);aimX=v.x;aimY=v.y;});
+let fireOriginX=0,fireOriginY=0;
+aimPad.addEventListener('pointerdown',e=>{if(aimId!==null)return;aimId=e.pointerId;aimPad.setPointerCapture(e.pointerId);touchFire=true;mouseAiming=false;fireOriginX=e.clientX;fireOriginY=e.clientY;aimX=aimY=0;});aimPad.addEventListener('pointermove',e=>{if(e.pointerId!==aimId)return;const dx=e.clientX-fireOriginX,dy=e.clientY-fireOriginY;const length=Math.hypot(dx,dy);aimX=length>9?dx/length:0;aimY=length>9?dy/length:0;});
 for(const event of ['pointerup','pointercancel','lostpointercapture']){driveStick.addEventListener(event,e=>{if((e as PointerEvent).pointerId===driveId){driveId=null;driveX=driveY=0;}});aimPad.addEventListener(event,e=>{if((e as PointerEvent).pointerId===aimId){aimId=null;touchFire=false;aimX=aimY=0;}});}
 const aimRay=new THREE.Raycaster(),aimPlane=new THREE.Plane(new THREE.Vector3(0,1,0)),aimPoint=new THREE.Vector3();
 addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||!running)return;mouseAiming=true;aimPlane.constant=-player.mesh.position.y;aimRay.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1),camera);if(aimRay.ray.intersectPlane(aimPlane,aimPoint))player.aim=Math.atan2(player.mesh.position.x-aimPoint.x,player.mesh.position.z-aimPoint.z);});
@@ -172,7 +211,7 @@ function waypoint(c:Car,dt:number,gx:number,gz:number){let route=routes.get(c);i
  const point=k===start?new THREE.Vector2(gx,gz):new THREE.Vector2((k%n)*step-45.5,Math.floor(k/n)*step-45.5);routes.set(c,{timer:.9,point});return point;
 }
 function tick(dt:number){if(!running||paused)return;const steer=(keys.has('KeyA')||keys.has('ArrowLeft')?-1:0)+(keys.has('KeyD')||keys.has('ArrowRight')?1:0)+steering;
-for(const c of cars){c.invulnerable=Math.max(0,c.invulnerable-dt);c.skillTimer=Math.max(0,c.skillTimer-dt);c.boost=Math.max(0,c.boost-dt);c.power=Math.max(0,c.power-dt);c.missileTimer=Math.max(0,(c.missileTimer??0)-dt);c.rocketTimer=Math.max(0,c.rocketTimer-dt);if(!c.alive){if(match.mode!=='elimination'&&match.mode!=='horde'){c.respawn-=dt;if(c.respawn<=0)respawn(c);}continue;}if(c.player){let turn=steer,throttle=1;if(inputMode==='twin'){const x=driveX+(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0),y=driveY+(keys.has('KeyS')?1:0)-(keys.has('KeyW')?1:0),mag=Math.hypot(x,y);throttle=mag>.12?Math.min(1,mag):0;turn=mag>.12?THREE.MathUtils.clamp(-angleDelta(screenHeading(x,y),c.angle)*2,-1,1):0;}moveCar(c,dt,THREE.MathUtils.clamp(turn,-1,1),throttle);if(Math.hypot(aimX,aimY)>.2)c.aim=screenHeading(aimX,aimY);else if(!mouseAiming){const target=autoTarget(c);c.aim=target?Math.atan2(c.mesh.position.x-target.mesh.position.x,c.mesh.position.z-target.mesh.position.z):c.angle;}orientTurret(c);if(touchFire||keys.has('Space'))shoot(c);continue;}
+for(const c of cars){c.invulnerable=Math.max(0,c.invulnerable-dt);c.skillTimer=Math.max(0,c.skillTimer-dt);c.boost=Math.max(0,c.boost-dt);c.power=Math.max(0,c.power-dt);c.missileTimer=Math.max(0,(c.missileTimer??0)-dt);c.rocketTimer=Math.max(0,c.rocketTimer-dt);if(!c.alive){if(match.mode!=='elimination'&&match.mode!=='horde'){c.respawn-=dt;if(c.respawn<=0)respawn(c);}continue;}if(c.player){let turn=steer,throttle=1;if(inputMode==='twin'){const x=driveX+(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0),y=driveY+(keys.has('KeyS')?1:0)-(keys.has('KeyW')?1:0),mag=Math.hypot(x,y);throttle=mag>.12?Math.min(1,mag):0;turn=mag>.12?THREE.MathUtils.clamp(-angleDelta(screenHeading(x,y),c.angle)*2,-1,1):0;}moveCar(c,dt,THREE.MathUtils.clamp(turn,-1,1),throttle);if(Math.hypot(aimX,aimY)>.2)c.aim=screenHeading(aimX,aimY);else if(!mouseAiming||touchFire||keys.has('Space')){const target=autoTarget(c);c.aim=target?Math.atan2(c.mesh.position.x-target.mesh.position.x,c.mesh.position.z-target.mesh.position.z):c.angle;}orientTurret(c);if(touchFire||keys.has('Space'))shoot(c);continue;}
  const enemies=cars.filter(o=>o.alive&&o.team!==c.team&&sees(c,o)).sort((a,b)=>a.mesh.position.distanceToSquared(c.mesh.position)-b.mesh.position.distanceToSquared(c.mesh.position));const visibleEnemy=autoTarget(c);const enemy=visibleEnemy??enemies[0];if(!enemy){let contact=contacts.get(c);if(contact){contact.ttl-=dt;if(contact.ttl<=0){contacts.delete(c);contact=undefined;}}let gx=contact?.x??((cars.indexOf(c)%3-1)*12),gz=contact?.z??(c.team===1?12:-12);if(match.mode==='capture'){const point=match.points[cars.indexOf(c)%3];gx=point.x;gz=point.z;}if(match.mode==='ctf'){const flag=flags[1-c.team];gx=flag.x;gz=flag.z;}if(match.mode==='charge'){gx=chargeX;gz=chargeZ;}const wp=waypoint(c,dt,gx,gz),delta=angleDelta(Math.atan2(c.mesh.position.x-wp.x,c.mesh.position.z-wp.y),c.angle);moveCar(c,dt,THREE.MathUtils.clamp(-delta*1.8,-1,1),Math.hypot(c.mesh.position.x-gx,c.mesh.position.z-gz)<3?.2:Math.abs(delta)>2?-.35:1);c.aim=c.angle;orientTurret(c);continue;}contacts.set(c,{x:enemy.mesh.position.x,z:enemy.mesh.position.z,ttl:4});
  const tactical=tacticalGoal(cars.indexOf(c),c.loadout,c.mesh.position.x,c.mesh.position.z,enemy.mesh.position.x,enemy.mesh.position.z,weapons[c.weapon].range);let gx=tactical.x,gz=tactical.z;const dist=c.mesh.position.distanceTo(enemy.mesh.position);
  if(match.mode==='ctf'){const held=flags.find(f=>f.carrier===c),own=flags[c.team],targetFlag=held?own:(own.dropped>0?own:flags[1-c.team]);gx=held?own.home.x:targetFlag.x;gz=held?own.home.z:targetFlag.z;}if(match.mode==='charge'){if(chargeCarrier?.team===c.team){gx=chargeCarrier.mesh.position.x+(c.team===0?-8:8);gz=chargeCarrier.mesh.position.z+5;}else{gx=chargeX;gz=chargeZ;}}if(match.mode==='capture'){const objectives=[...match.points].sort((a,b)=>(a.owner===c.team?100:0)+Math.hypot(c.mesh.position.x-a.x,c.mesh.position.z-a.z)-(b.owner===c.team?100:0)-Math.hypot(c.mesh.position.x-b.x,c.mesh.position.z-b.z));const goal=objectives[cars.indexOf(c)%2]??objectives[0];gx=goal.x;gz=goal.z;}
