@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import './style.css';
 import './interface.css';
 import './game-fit.css';
-import {buildBridge,driveHeight,bridgeHit} from './bridge';
+import {buildBridge,driveHeight,bridgeHit,deckHeight} from './bridge';
 import {addMapDetails} from './map-detail';
 import {CombatEffects} from './combat-effects';
 import {interfaceMarkup,vehicleArt} from './interface';
@@ -76,6 +76,7 @@ const camera=new THREE.OrthographicCamera(-25,25,18,-18,.1,150);const sun=new TH
 const mat=(c:number,metalness=0)=>new THREE.MeshStandardMaterial({color:c,roughness:.68,metalness});
 function box(w:number,h:number,d:number,m:THREE.Material,x=0,y=0,z=0){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;return mesh}
 const world=new THREE.Group();scene.add(world);const obstacles:{x:number;z:number;w:number;d:number}[]=[];let surface:THREE.DataTexture;let bridgeSolids:Rect[]=[];
+let bridgeMaterials:THREE.Material[]=[];
 function buildArena(){const materials=new Set<THREE.Material>();world.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])materials.add(m);}});materials.forEach(m=>m.dispose());world.clear();surface?.dispose();obstacles.length=0;setTerrain(selectedArena);scene.background=new THREE.Color(selectedArena===2?0x557783:selectedArena===1?0x18262d:0x182738);scene.fog=new THREE.Fog(scene.background,70,140);
 // A single continuous heightfield: visible slopes and driving share the same height function.
 const terrainGeometry=new THREE.PlaneGeometry(100,100,160,160);terrainGeometry.rotateX(-Math.PI/2);
@@ -94,7 +95,9 @@ for(const [x,z,w,d] of (selectedArena===1?[[-12,-2,3,15],[13,7,3,13],[-27,-22,12
  if(Math.abs(z-34)<d/2+4.5&&Math.abs(x)<38+w/2)continue;obstacles.push({x,z,w,d});const geo=selectedArena===1?new THREE.BoxGeometry(1,1,1):new THREE.DodecahedronGeometry(1,1);const pos=geo.attributes.position;
  for(let i=0;i<pos.count;i++){const px=pos.getX(i),py=pos.getY(i),pz=pos.getZ(i);const noise=selectedArena===1?1:1+.11*Math.sin(px*17+py*9+pz*23);pos.setXYZ(i,px*noise,py*noise,pz*noise);}geo.computeVertexNormals();geo.computeBoundingBox();const bounds=geo.boundingBox!,size=new THREE.Vector3();bounds.getSize(size);geo.translate(-(bounds.max.x+bounds.min.x)/2,-bounds.min.y,-(bounds.max.z+bounds.min.z)/2);geo.scale(w/size.x,3.5/size.y,d/size.z);const rock=new THREE.Mesh(geo,rockMaterial);rock.position.set(x,terrainHeight(x,z)-.1,z);rock.castShadow=rock.receiveShadow=true;if(selectedArena!==1&&assetTemplates.has('rock')){const detailed=fitAsset(instantiateAsset(assetTemplates.get('rock')!),w,3.5,d);detailed.position.copy(rock.position);world.add(detailed);rock.geometry.dispose();}else world.add(rock);
 }
-addMapDetails(world,selectedArena,obstacles);bridgeSolids=buildBridge(world);
+addMapDetails(world,selectedArena,obstacles);const bridgeStart=world.children.length;
+bridgeSolids=buildBridge(world);
+bridgeMaterials=[...new Set(world.children.slice(bridgeStart).map(part=>(part as THREE.Mesh).material as THREE.Material))];
 // Small embedded stones stay below tire clearance and do not form invisible obstacles.
 for(let i=0;i<70;i++){const x=Math.sin(i*31.7)*46,z=Math.cos(i*19.3)*46;if(Math.abs(x+3*Math.sin(z*.12))<4)continue;const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.13+(i%5)*.06),rockMaterial);rock.scale.y=.35;rock.position.set(x,terrainHeight(x,z)-.02,z);world.add(rock);}
 // Static arena batching keeps the expanded map from adding hundreds of draw calls.
@@ -210,7 +213,16 @@ function waypoint(c:Car,dt:number,gx:number,gz:number){let route=routes.get(c);i
  let k=goal;if(parent.has(goal)){while(parent.get(k)!==start&&parent.get(k)!==k)k=parent.get(k)!;}else k=start;
  const point=k===start?new THREE.Vector2(gx,gz):new THREE.Vector2((k%n)*step-45.5,Math.floor(k/n)*step-45.5);routes.set(c,{timer:.9,point});return point;
 }
-function tick(dt:number){if(!running||paused)return;const steer=(keys.has('KeyA')||keys.has('ArrowLeft')?-1:0)+(keys.has('KeyD')||keys.has('ArrowRight')?1:0)+steering;
+function tick(dt:number){if(!running||paused)return;
+const pos=player.mesh.position, overhead=deckHeight(pos.x,pos.z);
+const fade=overhead!==null && pos.y+2<overhead;
+for(const material of bridgeMaterials){
+  const alpha=THREE.MathUtils.damp(material.opacity,fade?.2:1,15,dt);
+  material.opacity=alpha>.995?1:alpha;
+  const transparent=material.opacity<1;
+  if(material.transparent!==transparent){material.transparent=transparent;material.depthWrite=!transparent;material.needsUpdate=true;}
+}
+const steer=(keys.has('KeyA')||keys.has('ArrowLeft')?-1:0)+(keys.has('KeyD')||keys.has('ArrowRight')?1:0)+steering;
 for(const c of cars){c.invulnerable=Math.max(0,c.invulnerable-dt);c.skillTimer=Math.max(0,c.skillTimer-dt);c.boost=Math.max(0,c.boost-dt);c.power=Math.max(0,c.power-dt);c.missileTimer=Math.max(0,(c.missileTimer??0)-dt);c.rocketTimer=Math.max(0,c.rocketTimer-dt);if(!c.alive){if(match.mode!=='elimination'&&match.mode!=='horde'){c.respawn-=dt;if(c.respawn<=0)respawn(c);}continue;}if(c.player){let turn=steer,throttle=1;if(inputMode==='twin'){const x=driveX+(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0),y=driveY+(keys.has('KeyS')?1:0)-(keys.has('KeyW')?1:0),mag=Math.hypot(x,y);throttle=mag>.12?Math.min(1,mag):0;turn=mag>.12?THREE.MathUtils.clamp(-angleDelta(screenHeading(x,y),c.angle)*2,-1,1):0;}moveCar(c,dt,THREE.MathUtils.clamp(turn,-1,1),throttle);if(Math.hypot(aimX,aimY)>.2)c.aim=screenHeading(aimX,aimY);else if(!mouseAiming||touchFire||keys.has('Space')){const target=autoTarget(c);c.aim=target?Math.atan2(c.mesh.position.x-target.mesh.position.x,c.mesh.position.z-target.mesh.position.z):c.angle;}orientTurret(c);if(touchFire||keys.has('Space'))shoot(c);continue;}
  const enemies=cars.filter(o=>o.alive&&o.team!==c.team&&sees(c,o)).sort((a,b)=>a.mesh.position.distanceToSquared(c.mesh.position)-b.mesh.position.distanceToSquared(c.mesh.position));const visibleEnemy=autoTarget(c);const enemy=visibleEnemy??enemies[0];if(!enemy){let contact=contacts.get(c);if(contact){contact.ttl-=dt;if(contact.ttl<=0){contacts.delete(c);contact=undefined;}}let gx=contact?.x??((cars.indexOf(c)%3-1)*12),gz=contact?.z??(c.team===1?12:-12);if(match.mode==='capture'){const point=match.points[cars.indexOf(c)%3];gx=point.x;gz=point.z;}if(match.mode==='ctf'){const flag=flags[1-c.team];gx=flag.x;gz=flag.z;}if(match.mode==='charge'){gx=chargeX;gz=chargeZ;}const wp=waypoint(c,dt,gx,gz),delta=angleDelta(Math.atan2(c.mesh.position.x-wp.x,c.mesh.position.z-wp.y),c.angle);moveCar(c,dt,THREE.MathUtils.clamp(-delta*1.8,-1,1),Math.hypot(c.mesh.position.x-gx,c.mesh.position.z-gz)<3?.2:Math.abs(delta)>2?-.35:1);c.aim=c.angle;orientTurret(c);continue;}contacts.set(c,{x:enemy.mesh.position.x,z:enemy.mesh.position.z,ttl:4});
  const tactical=tacticalGoal(cars.indexOf(c),c.loadout,c.mesh.position.x,c.mesh.position.z,enemy.mesh.position.x,enemy.mesh.position.z,weapons[c.weapon].range);let gx=tactical.x,gz=tactical.z;const dist=c.mesh.position.distanceTo(enemy.mesh.position);
