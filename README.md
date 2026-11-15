@@ -89,6 +89,8 @@ All sound is synthesised at run time with the Web Audio API in `src/audio.ts`, s
 - **Combat.** Per-weapon gunshots that lose their top end and gain reverb with distance, shell casings, armour pings and ground hits, rocket launch hiss, car-to-wall and car-to-car crashes, layered explosions with debris rattle, airstrike whistles, skill sounds and pickup chimes.
 - **Battlefield ambience.** Per-arena wind and room tone (foundry metal creaks, caldera lava bubbling, colder and windier frostline) plus distant artillery, rolling gunfire and fly-overs that come more often as the fight heats up.
 
+- **Arena music** (`src/music.ts`). An original, procedurally sequenced electronic track per arena, each with its own key, tempo, chord loop and seeded patterns: Sandstone D minor 126 BPM, Foundry E minor 132 BPM with metallic claps, Frostline A minor 120 BPM with bell arps and swing, Caldera C minor 140 BPM. Kick, clap, hats, filtered bass with sub, arp with dotted-eighth echo, pad, a lead in the peak section, and risers and crashes into each drop. The song cycles intro, groove, drive, break and peak; heavy fighting pushes it into the fuller sections sooner. The kick side-chains the melodic parts and big explosions briefly duck the music. Music volume has its own slider in Settings (default 60).
+
 Levels were checked by rendering each sound offline in headless Chromium; the mix has not been heard on a real phone yet.
 
 ## Build 17
