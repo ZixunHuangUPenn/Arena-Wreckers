@@ -21,9 +21,9 @@ type Bolt={mesh:THREE.Mesh;age:number;life:number};
 export class SkillEffects{
  private domes:Dome[]=[];private bolts:Bolt[]=[];private cables:Cable[]=[];
  private domeGeometry=new THREE.SphereGeometry(1,48,20,0,Math.PI*2,0,Math.PI*.56);
- private ropeGeometry=new THREE.CylinderGeometry(.045,.045,1,6).rotateX(Math.PI/2).translate(0,0,.5);
- private hookGeometry=new THREE.ConeGeometry(.2,.55,6).rotateX(Math.PI/2);
- private ropeMaterial=new THREE.MeshStandardMaterial({color:0x2a2d30,roughness:.45,metalness:.9,emissive:0x6a2a08,emissiveIntensity:.6});
+ private ropeGeometry=new THREE.CylinderGeometry(.07,.07,1,6).rotateX(Math.PI/2).translate(0,0,.5);
+ private hookGeometry=new THREE.ConeGeometry(.26,.7,6).rotateX(Math.PI/2);
+ private ropeMaterial=new THREE.MeshStandardMaterial({color:0x2a2d30,roughness:.45,metalness:.9,emissive:0xb04a10,emissiveIntensity:1.2});
  private hookMaterial=new THREE.MeshBasicMaterial({color:new THREE.Color(3.2,1.5,.4)});
  constructor(private scene:THREE.Scene){}
  /** Translucent hex-plated shield. Caller moves `mesh.position` each frame. */
@@ -39,7 +39,7 @@ export class SkillEffects{
  setCable(cable:Cable,from:THREE.Vector3,to:THREE.Vector3){const length=Math.max(.01,from.distanceTo(to));cable.group.position.copy(from);cable.group.lookAt(to);cable.rope.scale.set(1,1,length);cable.hook.position.set(0,0,length);}
  removeCable(cable:Cable){this.scene.remove(cable.group);const i=this.cables.indexOf(cable);if(i>=0)this.cables.splice(i,1);}
  /** Jagged lightning arc between two points; fades within `life` seconds. */
- bolt(from:THREE.Vector3,to:THREE.Vector3,color=0xb98cff,life=.16,width=.11){
+ bolt(from:THREE.Vector3,to:THREE.Vector3,color=0xb98cff,life=.18,width=.16){
   if(this.bolts.length>=28)this.dropBolt(0);
   const span=to.clone().sub(from),length=span.length(),segments=Math.max(4,Math.min(14,Math.round(length/1.1))),side=new THREE.Vector3(-span.z,0,span.x).normalize(),up=new THREE.Vector3(0,1,0),points:THREE.Vector3[]=[];
   for(let i=0;i<=segments;i++){const t=i/segments,jitter=Math.sin(t*Math.PI)*Math.min(1.3,length*.12),p=from.clone().addScaledVector(span,t);if(i>0&&i<segments)p.addScaledVector(side,(Math.random()-.5)*2*jitter).addScaledVector(up,(Math.random()-.5)*jitter);points.push(p);}
