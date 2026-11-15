@@ -42,7 +42,7 @@ function wheelGeometry(radius:number,width:number){
  const result={tyre,rim:joinGeometries(parts)};result.rim.userData.shared=true;tyreCache.set(key,result);return result;
 }
 
-export type VehicleVisual=THREE.Group&{userData:{materials:THREE.Material[];turret:THREE.Group;paint:THREE.MeshPhysicalMaterial;body:THREE.Group;wheels:{mesh:THREE.Group;steer:boolean;radius:number}[]}};
+export type VehicleVisual=THREE.Group&{userData:{materials:THREE.Material[];turretZ:number;turret:THREE.Group;paint:THREE.MeshPhysicalMaterial;body:THREE.Group;wheels:{mesh:THREE.Group;steer:boolean;radius:number}[]}};
 /** Builds one of the five vehicles (0 Mantis, 1 Punisher, 2 Retro, 3 Pummeler, 4 Bigrig) with its weapon on a `Turret` node. */
 export function buildVehicle(kind:number,color:number,gunHeight:number):VehicleVisual{
  const materials:Record<Bucket,THREE.Material>={
@@ -124,7 +124,7 @@ export function buildVehicle(kind:number,color:number,gunHeight:number):VehicleV
  const emit=(parts:Partial<Record<Bucket,THREE.BufferGeometry[]>>,parent:THREE.Group)=>{for(const key of Object.keys(parts) as Bucket[]){const mesh=new THREE.Mesh(joinGeometries(parts[key]!),materials[key]);mesh.castShadow=mesh.receiveShadow=true;mesh.name=key;parent.add(mesh);parts[key]!.forEach(g=>g.dispose());}};
  emit(hullParts,body);turret.position.z=turretZ;emit(turretParts,turret);body.add(turret);
  root.userData.wheels=wheels.map(w=>{const {tyre,rim}=wheelGeometry(w.radius,w.width),holder=new THREE.Group(),spin=new THREE.Group(),a=new THREE.Mesh(tyre,materials.rubber),b=new THREE.Mesh(rim,materials.chrome);a.castShadow=b.castShadow=true;a.receiveShadow=true;spin.add(a,b);spin.name='spin';holder.add(spin);holder.position.set(w.x,w.radius,w.z);root.add(holder);return {mesh:holder,steer:w.steer,radius:w.radius};});
- root.userData.materials=Object.values(materials);root.userData.turret=turret;root.userData.paint=materials.paint as THREE.MeshPhysicalMaterial;root.userData.body=body;return root;
+ root.userData.materials=Object.values(materials);root.userData.turretZ=turretZ;root.userData.turret=turret;root.userData.paint=materials.paint as THREE.MeshPhysicalMaterial;root.userData.body=body;return root;
 }
 /** Visual-only wheel spin, steering lock, body roll and pitch. `distance` is metres travelled this frame (signed). */
 export function animateVehicle(visual:THREE.Object3D,distance:number,steer:number,roll:number,pitch:number){const data=visual.userData;if(!data?.wheels)return;for(const w of data.wheels as {mesh:THREE.Group;steer:boolean;radius:number}[]){w.mesh.children[0].rotation.x-=distance/w.radius;if(w.steer)w.mesh.rotation.y=steer;}const body=data.body as THREE.Group;body.rotation.z=roll;body.rotation.x=pitch;}
