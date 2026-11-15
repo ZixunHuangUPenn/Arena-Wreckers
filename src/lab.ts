@@ -1,0 +1,46 @@
+import * as THREE from 'three';
+import {buildVehicle} from './vehicle-models';
+import {createShowroom} from './showroom';
+import {vehicles} from './handling';
+import {surfaceMaterial} from './environment';
+const q=new URLSearchParams(location.search),car=Number(q.get('car')??1),framing=(q.get('f')??'hero') as any,rot=q.get('rot');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Number(q.get('dpr')??1));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=Number(q.get('exp')??1.08);document.body.append(renderer.domElement);
+const room=createShowroom(renderer);
+if(q.get('mode')){
+ // Game-mode key art for the deploy menu: real vehicle models staged on a dark arena floor with mode props and team-coloured light.
+ const mode=q.get('mode')!,scene=new THREE.Scene();scene.background=new THREE.Color(0x07090c);scene.fog=new THREE.FogExp2(0x0c0f13,Number(q.get('fog')??.04));scene.environment=room.scene.environment;scene.environmentIntensity=1.4;
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(300,300),surfaceMaterial('asphalt',{color:0x9a9792,repeat:60,roughness:.75}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+ // Painted arena lane markings and tyre scuffs give the floor scale.
+ for(let i=-6;i<=6;i++){const m=new THREE.Mesh(new THREE.PlaneGeometry(.18,2.2),new THREE.MeshBasicMaterial({color:0x8a7342,transparent:true,opacity:.35}));m.rotation.x=-Math.PI/2;m.position.set(0,.01,i*4);scene.add(m);}
+ scene.add(new THREE.HemisphereLight(0x7f8ea0,0x0b0907,.7));
+ const key=new THREE.DirectionalLight(0xfff0dc,4.2);key.position.set(-6,12,8);key.castShadow=true;key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-12,right:12,top:12,bottom:-12,near:1,far:40});key.shadow.bias=-.0004;key.shadow.radius=3;scene.add(key);
+ const blue=0x3fa8ff,red=0xff4a3a,gold=0xffc56a;
+ const spot=(color:number,x:number,y:number,z:number,tx:number,tz:number,power=60)=>{const l=new THREE.SpotLight(color,power,40,.6,.6,1.4);l.position.set(x,y,z);l.target.position.set(tx,0,tz);scene.add(l,l.target);};
+ const car=(k:number,x:number,z:number,yaw:number,color?:number,scale=1)=>{const v=buildVehicle(k,color??vehicles[k].color,vehicles[k].gunHeight);v.position.set(x,0,z);v.rotation.y=yaw;v.scale.setScalar(scale);v.traverse(o=>{if(o instanceof THREE.Mesh){o.castShadow=true;o.receiveShadow=true;}});scene.add(v);return v;};
+ const glow=(color:number,r:number,x:number,z:number,opacity=.8)=>{const m=new THREE.Mesh(new THREE.RingGeometry(r-.12,r,96),new THREE.MeshBasicMaterial({color:new THREE.Color(color).multiplyScalar(2),transparent:true,opacity,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;m.position.set(x,.02,z);scene.add(m);const d=new THREE.Mesh(new THREE.CircleGeometry(r,96),new THREE.MeshBasicMaterial({color,transparent:true,opacity:opacity*.18,depthWrite:false}));d.rotation.x=-Math.PI/2;d.position.set(x,.015,z);scene.add(d);const pl=new THREE.PointLight(color,8,r*3,1.6);pl.position.set(x,.6,z);scene.add(pl);};
+ const beam=(color:number,x:number,z:number,h=9,w=.5)=>{return;const m=new THREE.Mesh(new THREE.CylinderGeometry(w*.6,w,h,24,1,true),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));m.position.set(x,h/2,z);scene.add(m);};
+ const flag=(color:number,x:number,z:number)=>{const pole=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,4.2,12),new THREE.MeshStandardMaterial({color:0xcfd4d8,metalness:.9,roughness:.25}));pole.position.set(x,2.1,z);pole.castShadow=true;scene.add(pole);const g=new THREE.PlaneGeometry(1.8,1.05,24,8),pos=g.attributes.position;for(let i=0;i<pos.count;i++){const u=pos.getX(i)+.9;pos.setZ(i,Math.sin(u*3.2)*.16*u);}g.computeVertexNormals();const cloth=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.35,roughness:.7,side:THREE.DoubleSide}));cloth.position.set(x+.92,3.6,z);cloth.castShadow=true;scene.add(cloth);const base=new THREE.Mesh(new THREE.CylinderGeometry(.6,.7,.18,32),new THREE.MeshStandardMaterial({color:0x2b2f34,metalness:.7,roughness:.4}));base.position.set(x,.09,z);scene.add(base);glow(color,1.4,x,z,.9);};
+ const battery=(x:number,z:number)=>{const g=new THREE.Group();const core=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,1.3,32),new THREE.MeshStandardMaterial({color:0x2a2f35,metalness:.85,roughness:.3}));const cell=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,1.0,32),new THREE.MeshBasicMaterial({color:new THREE.Color(0x7dffcf).multiplyScalar(2.2)}));for(const y of [-.5,.5]){const cap=new THREE.Mesh(new THREE.CylinderGeometry(.46,.46,.14,32),new THREE.MeshStandardMaterial({color:0xd8b56a,metalness:.9,roughness:.25}));cap.position.y=y*1.25;g.add(cap);}g.add(core,cell);core.scale.set(1,1,1);(core.material as THREE.MeshStandardMaterial).transparent=true;(core.material as THREE.MeshStandardMaterial).opacity=.45;g.position.set(x,1.7,z);g.rotation.z=.18;g.scale.setScalar(1.8);scene.add(g);const pl=new THREE.PointLight(0x7dffcf,14,9,1.5);pl.position.set(x,1.2,z);scene.add(pl);glow(0x7dffcf,1.6,x,z);beam(0x7dffcf,x,z,10,.7);};
+ const cam=new THREE.PerspectiveCamera(30,innerWidth/innerHeight,.1,120);let look=new THREE.Vector3(0,.8,0);cam.position.set(9,4.2,10);
+ if(mode==='horde'){car(1,0,4,.35,0x2f6fb0);spot(blue,5,7,10,0,4,60);[[-5,-3,0],[0,-5.5,2],[5,-2.5,3]].forEach(([x,z,k])=>car(k,x,z,Math.PI+.25*Math.sign(-x||1),0x4a2522));car(4,-1,-13,Math.PI-.2,0x6a1d18,1.3);spot(red,0,10,-20,-1,-10,220);beam(red,-1,-13,14,2.2);cam.position.set(13,6,17);look.set(-.5,.6,-3.5);}
+ if(mode==='team'){[[-4,0],[0,1],[4,2]].forEach(([x,k],i)=>car(k,x,6+(i%2)*1.2,0,0x2f6fb0));[[-4,3],[0,4],[4,0]].forEach(([x,k],i)=>car(k,x,-6-(i%2)*1.2,Math.PI,0xa83228));spot(blue,0,8,15,0,6,120);spot(red,0,8,-15,0,-6,120);cam.position.set(22,8.5,3);look.set(0,0,-.5);}
+ if(mode==='capture'){glow(gold,4.2,0,0,.95);beam(gold,0,0,14,4);car(0,-1.8,1,.9,0x2f6fb0);car(2,2.4,-.8,-2.3,0xa83228);car(3,-7,-5,.9,0x2f6fb0);glow(blue,2.2,-10,8,.7);glow(red,2.2,9,-10,.7);spot(gold,0,12,0,0,0,110);cam.position.set(12,8,14);look.set(.5,0,0);}
+ if(mode==='elimination'){car(2,-3,1.6,.85,0x2f6fb0);car(4,3.4,-2.2,-2.3,0xa83228);spot(blue,-9,6,8,-3,1.6,110);spot(red,10,6,-8,3.4,-2,110);const wreck=car(0,2.6,6,1.9,0x2a2624);wreck.rotation.z=1.25;wreck.position.y=.6;const pl=new THREE.PointLight(0xff7a2a,16,10,1.5);pl.position.set(2.6,1.4,6);scene.add(pl);cam.position.set(13,5,13);look.set(0,.4,0);}
+ if(mode==='ctf'){flag(red,-1.5,-2);car(0,2.6,2,-2.3,0x2f6fb0);car(1,-7,3,.5,0xa83228);flag(blue,12,-12);spot(red,-3,9,5,-1.5,-2,110);spot(blue,8,7,8,2.6,2,60);cam.position.set(11,4.6,14);look.set(-.5,1.2,-.5);}
+ if(mode==='charge'){battery(0,0);car(1,-4.2,2.6,1.0,0x2f6fb0);car(2,4.4,-1.8,-2.1,0xa83228);car(0,3.4,4.8,-.9,0xa83228);spot(blue,-10,7,8,-4,2.6,90);spot(red,10,7,-6,4,-1.8,90);cam.position.set(12,6,13.5);look.set(0,.4,0);}
+ cam.position.sub(look).multiplyScalar(Number(q.get('zoom')??1)).add(look);cam.lookAt(look);renderer.toneMappingExposure=1.5;for(let i=0;i<2;i++)renderer.render(scene,cam);(window as any).ready=true;
+}else if(q.get('thumb')!==null){
+ // Transparent studio render for selection cards: same environment and lights, no set.
+ document.body.style.background='transparent';document.documentElement.style.background='transparent';renderer.setClearColor(0x000000,0);const scene=new THREE.Scene();scene.environment=room.scene.environment;scene.environmentIntensity=1.35;
+ scene.add(new THREE.HemisphereLight(0x8a9aa8,0x15110d,.8));const key=new THREE.DirectionalLight(0xfff1de,3.4);key.position.set(-3.5,9,4.5);scene.add(key);const rim=new THREE.DirectionalLight(0x9fd8ff,1.6);rim.position.set(5,3.5,-6);scene.add(rim);
+ const v=buildVehicle(car,vehicles[car].color,vehicles[car].gunHeight);let subject:THREE.Object3D=v;
+ if(q.get('weapon')!==null){const t=v.userData.turret.clone();t.position.set(0,0,0);subject=t;}
+ const holder=new THREE.Group();holder.add(subject);holder.rotation.y=Number(q.get('rot')??2.45);scene.add(holder);
+ const boxx=new THREE.Box3().setFromObject(holder),c=boxx.getCenter(new THREE.Vector3()),r=boxx.getSize(new THREE.Vector3()).length()/2;
+ const cam=new THREE.PerspectiveCamera(26,innerWidth/innerHeight,.1,100);const dir=new THREE.Vector3(.9,.55,1).normalize();cam.position.copy(c).addScaledVector(dir,r/Math.sin(THREE.MathUtils.degToRad(13))*Number(q.get('zoom')??.82));cam.lookAt(c);
+ renderer.render(scene,cam);(window as any).ready=true;
+}else{
+if(q.get('all')){[0,1,2,3,4].forEach((k,i)=>{const v=buildVehicle(k,vehicles[k].color,vehicles[k].gunHeight);v.position.set((i-2)*3.2,0,i%2?1.5:-1.5);room.stage.add(v);});}
+else{const v=buildVehicle(car,q.get('c')?Number(q.get('c')):vehicles[car].color,vehicles[car].gunHeight);room.stage.add(v);}
+let t=0;const draw=()=>{t+=1000;room.update(t,framing,innerWidth,innerHeight,q.get('all')?5:vehicles[car].hz);if(rot!==null)(room.stage.parent as THREE.Object3D).rotation.y=Number(rot);renderer.render(room.scene,room.camera);};
+for(let i=0;i<4;i++)draw();(window as any).ready=true;}
