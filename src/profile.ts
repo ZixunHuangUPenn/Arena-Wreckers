@@ -25,7 +25,7 @@ export function loadDriver(name:string){
  profileStore.key=key;profileStore.data=loaded.data;
  storage?.setItem('arena-last-driver',name);
 }
-export const paintColors=[0x21c6ce,0xff733b,0x9666ef,0xe6dcc3,0x697a4b,0x353a44];
+export const paintColors=[0x1f8796,0xd2581f,0x5d3a96,0xd8d2c4,0x5a6440,0x2c2f35];
 export const paintNames=['极光蓝','熔岩橙','幻影紫','荒原白','军团绿','石墨黑'];
 export const weapons=[
  {name:'Mantis · 旋转机枪',tag:'短点射 / 压制',damage:1,reload:1,speed:34,range:16,spread:.055,pellets:1,gravity:0,color:0xffdc82,splash:0},
