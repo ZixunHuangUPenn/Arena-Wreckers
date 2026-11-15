@@ -9,13 +9,13 @@ export type ArenaLook={
  sun:{color:number;intensity:number;dir:[number,number,number]};
  hemi:{sky:number;ground:number;intensity:number};
  sky:{zenith:number;horizon:number;ground:number};
- haze:number;exposure:number;envIntensity:number;bloom:number;cloud:number;
+ haze:number;fog:[number,number];exposure:number;envIntensity:number;bloom:number;cloud:number;
  grade:{tint:[number,number,number];saturation:number;contrast:number;vignette:number};
 };
 export const arenaLooks:ArenaLook[]=[
- {name:'sandstone',sun:{color:0xffd6a8,intensity:3.3,dir:[-.66,.5,.42]},hemi:{sky:0x9ab8ea,ground:0x80573a,intensity:.6},sky:{zenith:0x3d6db8,horizon:0xf3c996,ground:0x7a5a3c},haze:0xcfa67c,exposure:1.02,envIntensity:.6,bloom:.28,cloud:.34,grade:{tint:[1.04,1,.94],saturation:1.02,contrast:1.06,vignette:.3}},
- {name:'foundry',sun:{color:0xcdd8ff,intensity:2.4,dir:[-.5,.62,.5]},hemi:{sky:0x8094bd,ground:0x4a3d34,intensity:1.2},sky:{zenith:0x0b1226,horizon:0x4a3a4a,ground:0x16130f},haze:0x191c26,exposure:1.5,envIntensity:.8,bloom:.5,cloud:0,grade:{tint:[.97,1,1.06],saturation:1.08,contrast:1.1,vignette:.42}},
- {name:'frostline',sun:{color:0xfff0dc,intensity:3.2,dir:[-.58,.46,.5]},hemi:{sky:0x8db6ff,ground:0x9aa9bd,intensity:.85},sky:{zenith:0x3f7fd1,horizon:0xdfeeff,ground:0xa9b9cc},haze:0xc4d6e6,exposure:.92,envIntensity:.7,bloom:.22,cloud:.28,grade:{tint:[.97,1,1.05],saturation:1.04,contrast:1.05,vignette:.26}},
+ {name:'sandstone',sun:{color:0xffd6a8,intensity:3.3,dir:[-.66,.5,.42]},hemi:{sky:0x9ab8ea,ground:0x80573a,intensity:.6},sky:{zenith:0x3d6db8,horizon:0xf3c996,ground:0x7a5a3c},haze:0xd8b48e,fog:[55,330],exposure:1.02,envIntensity:.6,bloom:.28,cloud:.34,grade:{tint:[1.04,1,.94],saturation:1.02,contrast:1.06,vignette:.3}},
+ {name:'foundry',sun:{color:0xcdd8ff,intensity:2.4,dir:[-.5,.62,.5]},hemi:{sky:0x8094bd,ground:0x4a3d34,intensity:1.2},sky:{zenith:0x0b1226,horizon:0x4a3a4a,ground:0x16130f},haze:0x191c26,fog:[50,240],exposure:1.5,envIntensity:.8,bloom:.5,cloud:0,grade:{tint:[.97,1,1.06],saturation:1.08,contrast:1.1,vignette:.42}},
+ {name:'frostline',sun:{color:0xfff0dc,intensity:3.2,dir:[-.58,.46,.5]},hemi:{sky:0x8db6ff,ground:0x9aa9bd,intensity:.85},sky:{zenith:0x3f7fd1,horizon:0xdfeeff,ground:0xa9b9cc},haze:0xc4d6e6,fog:[50,260],exposure:.92,envIntensity:.7,bloom:.22,cloud:.28,grade:{tint:[.97,1,1.05],saturation:1.04,contrast:1.05,vignette:.26}},
 ];
 
 // Shared animation clock for wind sway and drifting cloud shadows.
@@ -189,7 +189,7 @@ const colourCrates=[0x2f7f86,0xa5482f,0xc79a2e,0x51616c,0x3d6a44];
 export function buildEnvironment(style:number,cover:Footprint[],footprints:Footprint[]){
  const group=new THREE.Group(),names=layerSets[style],ground=groundMaterial(style);group.name='environment';
  const inner=new THREE.Mesh(gridGeometry(style,-50,50,.5,false,footprints),ground);inner.name='terrain';inner.receiveShadow=true;group.add(inner);
- const outer=new THREE.Mesh(gridGeometry(style,-150,150,5,true,[]),ground);outer.name='landscape';outer.receiveShadow=true;outer.castShadow=true;group.add(outer);
+ const outer=new THREE.Mesh(gridGeometry(style,-300,300,6.25,true,[]),ground);outer.name='landscape';outer.receiveShadow=true;outer.castShadow=true;group.add(outer);
  const rockMaterial=surfaceMaterial(names[2],{repeat:1}),bridgeZ=bridgeCenterZ();
  const blocked=(x:number,z:number,margin:number)=>footprints.some(r=>Math.abs(x-r.x)<r.w/2+margin&&Math.abs(z-r.z)<r.d/2+margin)||(Math.abs(z-bridgeZ)<6+margin&&Math.abs(x)<40);
  // Cover: one generated boulder cluster (or a stack of shipping containers in the foundry) per collision footprint.
@@ -240,11 +240,12 @@ function boundary(style:number){const positions:number[]=[],uvs:number[]=[],indi
 
 // ---------------------------------------------------------------- lighting and atmosphere
 /** Applies an arena's time of day to the scene's sun, sky light and background. */
-export function applyArenaLighting(style:number,scene:THREE.Scene,sun:THREE.DirectionalLight,hemisphere:THREE.HemisphereLight){const look=arenaLooks[style];sun.color.setHex(look.sun.color);sun.intensity=look.sun.intensity;hemisphere.color.setHex(look.hemi.sky);hemisphere.groundColor.setHex(look.hemi.ground);hemisphere.intensity=look.hemi.intensity;scene.background=new THREE.Color(look.haze);scene.fog=new THREE.Fog(look.haze,95,210);return look;}
+export function applyArenaLighting(style:number,scene:THREE.Scene,sun:THREE.DirectionalLight,hemisphere:THREE.HemisphereLight){const look=arenaLooks[style];sun.color.setHex(look.sun.color);sun.intensity=look.sun.intensity;hemisphere.color.setHex(look.hemi.sky);hemisphere.groundColor.setHex(look.hemi.ground);hemisphere.intensity=look.hemi.intensity;scene.background=new THREE.Color(look.haze);scene.fog=new THREE.Fog(look.haze,look.fog[0],look.fog[1]);return look;}
 /** Keeps a tight, texel-snapped shadow frustum centred on the camera focus so shadows stay sharp everywhere. */
-export function aimSun(style:number,sun:THREE.DirectionalLight,focus:THREE.Vector3,extent=34){const d=arenaLooks[style].sun.dir,direction=new THREE.Vector3(d[0],d[1],d[2]).normalize(),right=new THREE.Vector3(0,1,0).cross(direction).normalize(),up=direction.clone().cross(right),texel=extent*2/Math.max(1,sun.shadow.mapSize.x);
+export function aimSun(style:number,sun:THREE.DirectionalLight,viewFocus:THREE.Vector3,extent=50){const focus=viewFocus.clone();focus.x-=9;focus.z-=9; // the perspective view reaches further away from the camera than towards it
+ const d=arenaLooks[style].sun.dir,direction=new THREE.Vector3(d[0],d[1],d[2]).normalize(),right=new THREE.Vector3(0,1,0).cross(direction).normalize(),up=direction.clone().cross(right),texel=extent*2/Math.max(1,sun.shadow.mapSize.x);
  const snapped=right.clone().multiplyScalar(Math.round(focus.dot(right)/texel)*texel).add(up.clone().multiplyScalar(Math.round(focus.dot(up)/texel)*texel)).add(direction.clone().multiplyScalar(focus.dot(direction)));
- sun.target.position.copy(snapped);sun.position.copy(snapped).addScaledVector(direction,80);sun.target.updateMatrixWorld();const camera=sun.shadow.camera;if(camera.right!==extent){camera.left=camera.bottom=-extent;camera.right=camera.top=extent;camera.near=1;camera.far=190;camera.updateProjectionMatrix();sun.shadow.bias=-.0004;sun.shadow.normalBias=.05;}}
+ sun.target.position.copy(snapped);sun.position.copy(snapped).addScaledVector(direction,110);sun.target.updateMatrixWorld();const camera=sun.shadow.camera;if(camera.right!==extent){camera.left=camera.bottom=-extent;camera.right=camera.top=extent;camera.near=1;camera.far=260;camera.updateProjectionMatrix();sun.shadow.bias=-.0004;sun.shadow.normalBias=.05;}}
 /** Drifting snow, dust or embers in a volume that follows the camera. */
 export class Atmosphere{
  readonly points:THREE.Points;private style=-1;private readonly count=320;private readonly seeds:Float32Array;private clock=0;
