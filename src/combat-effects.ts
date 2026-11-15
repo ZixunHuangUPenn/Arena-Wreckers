@@ -66,6 +66,12 @@ export class CombatEffects{
   if(heavy)this.flash(p,26,.1);}
  impact(p:THREE.Vector3,heavy:boolean){const at=p.clone(),ground=terrainHeight(at.x,at.z);if(heavy){if(at.y-ground<2.5)this.decal(1,at.x,at.z,1.4,Math.random()*6.28,10,[.04,.035,.03],.5);return;}
   this.sparks(at,5,6);this.emit(SMOKE,at,[(Math.random()-.5)*1.2,.9+Math.random(),(Math.random()-.5)*1.2],.5,.4,1.3,[this.dust.r*.7,this.dust.g*.7,this.dust.b*.7],[this.dust.r,this.dust.g,this.dust.b],.45,2);if(at.y-ground<1)this.decal(1,at.x,at.z,.5,Math.random()*6.28,6,[.05,.045,.04],.45);}
+ /** One particle with explicit motion and colours, for skill effects that are not explosions. */
+ spray(fire:boolean,p:{x:number;y:number;z:number},v:[number,number,number],life:number,size0:number,size1:number,c0:[number,number,number],c1:[number,number,number],alpha=1,drag=1.5,gravity=0){this.emit(fire?FIRE:SMOKE,p,v,life,size0,size1,c0,c1,alpha,drag,gravity);}
+ /** Expanding ground ring: skill pulses and shockwaves. */
+ ring(x:number,z:number,size:number,grow:number,life:number,color:[number,number,number],alpha=.9){this.decal(2,x,z,size,Math.random()*6.28,life,color,alpha,grow);}
+ /** Short light flash without an explosion. */
+ glint(p:THREE.Vector3,peak:number,life:number){this.flash(p,peak,life);}
  trail(p:THREE.Vector3){this.emit(SMOKE,p,[(Math.random()-.5)*.6,.5+Math.random()*.4,(Math.random()-.5)*.6],.7+Math.random()*.4,.35,1.25,[.62,.6,.58],[.8,.79,.77],.42,1.2);this.emit(FIRE,p,[0,0,0],.1,.7,.25,[4,2.2,.6],[2,.4,.05],1);}
  update(dt:number,cars:CarLike[]){
   if(dt>0){
