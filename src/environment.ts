@@ -2,7 +2,8 @@
 // generated here at load time. Nothing in this file needs WebGL or the DOM, so the test suite
 // can build all three arenas headlessly.
 import * as THREE from 'three';
-import {terrainHeight,bridgeCenterZ} from './terrain';
+import {terrainHeight,shapeHeight,channelCut,featureMask,fluidSurface,terrainBlocked,mapLayout,bridgeLocal,ringWalls,ARENA,terrainGrid} from './terrain';
+import {buildFluids} from './water';
 
 export type ArenaLook={
  name:string;
@@ -83,23 +84,24 @@ const macroTexture=()=>cached('macro',()=>{const size=128,data=new Uint8Array(si
 const outerRelief=[24,2.5,28,34];
 /** Ground height everywhere: the gameplay heightfield inside the arena, generated mesas, yards or peaks outside it. */
 export function landHeight(x:number,z:number,style:number){
- const d=Math.max(Math.abs(x),Math.abs(z))-50;if(d<=0)return terrainHeight(x,z);
- const edge=terrainHeight(Math.max(-50,Math.min(50,x)),Math.max(-50,Math.min(50,z))),t=smooth(d/34),n=worldNoise(x,z,.018,5,style*13+3),ridged=1-Math.abs(2*n-1);
+ const d=Math.max(Math.abs(x),Math.abs(z))-ARENA;if(d<=0)return terrainHeight(x,z);
+ const shape=shapeHeight(x,z),t=smooth(d/34),n=worldNoise(x,z,.018,5,style*13+3),ridged=1-Math.abs(2*n-1);
  let relief=style===0?(.35+.65*smooth((n-.38)/.2))*.75+.25*ridged:style===1?n:style===3?ridged*.8+n*.2:ridged*ridged*.75+n*.25;
  if(style===0)relief=lerp(relief,Math.round(relief*4)/4,.55); // stepped mesas
  // The camera looks down at roughly 47 degrees; keeping the rim below a 0.55 slope stops it hiding the arena.
- return edge*(1-t*.7)+Math.min(.55*d,t*(outerRelief[style]*relief+(style===1?0:3)));
+ const mountain=shape*(1-t*.7)+Math.min(.55*d,t*(outerRelief[style]*relief+(style===1?0:3)));
+ // A gorge or river keeps cutting through the generated mountains beyond the wall.
+ return lerp(mountain,shape,channelCut(x,z));
 }
-export const roadMask=(x:number,z:number)=>{const a=Math.min(Math.abs(x-24-Math.sin(z*.065)*5),Math.abs(x+24-Math.sin(z*.065)*5)),b=Math.abs(z-20*Math.sin(x*.045));return Math.max(1-smooth((a-2.2)/1.4),1-smooth((b-2)/1.4));};
-const channelMask=(x:number,z:number,style:number)=>style===1?0:style===3?1-smooth((Math.abs(Math.hypot(x,z)-17)-3)/3.5):1-smooth((Math.abs(style===2?x-5*Math.sin(z*.07):x+5*Math.sin(z*.08))-3.5)/4);
+export const roadMask=(x:number,z:number)=>{const f=featureMask(x,z);if(f.canyon>.05||f.wet>.3||f.cliff>.4)return 0;const a=Math.min(Math.abs(x-48-Math.sin(z*.0325)*10),Math.abs(x+48-Math.sin(z*.0325)*10)),b=Math.abs(z-40*Math.sin(x*.0225));return Math.max(1-smooth((a-2.2)/1.4),1-smooth((b-2)/1.4));};
 /** Blend weights of the three surface layers [base, track, rock] at a world position. */
 export function surfaceWeights(x:number,z:number,style:number):RGB{
- const e=.4,sx=(landHeight(x+e,z,style)-landHeight(x-e,z,style))/(2*e),sz=(landHeight(x,z+e,style)-landHeight(x,z-e,style))/(2*e),slope=Math.hypot(sx,sz),h=landHeight(x,z,style),n=worldNoise(x,z,.09,4,style+40),inside=Math.max(Math.abs(x),Math.abs(z))<50;
- let track=inside?roadMask(x,z):0,rock=0;
- if(style===0){rock=smooth((slope-.3)/.3)+smooth((n-.62)/.1)*.6+(inside?0:smooth((h-5)/6)*.6);track=Math.max(track*.95,channelMask(x,z,0)*.7*smooth((n-.3)/.3));}
- else if(style===1){rock=smooth((slope-.12)/.2)*.9+smooth((n-.72)/.06)*.5;}
- else if(style===3){rock=smooth((slope-.3)/.25)+smooth((n-.64)/.08)*.6+(inside?0:smooth((h-6)/8)*.5);track=Math.max(track*.8,channelMask(x,z,3)*(inside?1:0),inside?0:smooth((worldNoise(x,z,.035,3,91)-.6)/.06)*.9);}
- else {rock=smooth((slope-.36)/.25)+smooth((n-.68)/.08)*.5;track=Math.max(track*.45,channelMask(x,z,2)*smooth((1.2-h)/1.4));}
+ const e=.4,sx=(landHeight(x+e,z,style)-landHeight(x-e,z,style))/(2*e),sz=(landHeight(x,z+e,style)-landHeight(x,z-e,style))/(2*e),slope=Math.hypot(sx,sz),h=landHeight(x,z,style),n=worldNoise(x,z,.09,4,style+40),inside=Math.max(Math.abs(x),Math.abs(z))<ARENA;
+ let track=inside?roadMask(x,z):0,rock=0;const f=featureMask(x,z),wetBed=Math.max(f.wet,f.canyon*.9);
+ if(style===0){rock=smooth((slope-.3)/.3)+smooth((n-.62)/.1)*.6+(inside?0:smooth((h-5)/6)*.6)+f.cliff*.4;track=Math.max(track*.95,wetBed*.85,f.ring*.9);}
+ else if(style===1){rock=smooth((slope-.12)/.2)*.9+smooth((n-.72)/.06)*.5;track=Math.max(track,wetBed*.7,f.ring);}
+ else if(style===3){rock=smooth((slope-.3)/.25)+smooth((n-.64)/.08)*.6+(inside?0:smooth((h-6)/8)*.5)+f.cliff*.3;track=Math.max(track*.8,wetBed,f.ring*.8,inside?0:smooth((worldNoise(x,z,.035,3,91)-.6)/.06)*.9);}
+ else {rock=smooth((slope-.36)/.25)+smooth((n-.68)/.08)*.5+f.cliff*.3;track=Math.max(track*.45,wetBed*.9,f.ring*.7);}
  rock=Math.min(1,rock);track=Math.min(1,track)*(1-rock*.8);return [Math.max(.02,1-rock-track),track,rock];
 }
 
@@ -154,7 +156,7 @@ function gridGeometry(style:number,min:number,max:number,step:number,skipInside:
   // Baked contact shadow: ground darkens where it meets rocks, crates and walls.
   let ao=1;for(const r of rects){const dx=Math.max(0,Math.abs(x-r.x)-r.w/2),dz=Math.max(0,Math.abs(z-r.z)-r.d/2),dist=Math.hypot(dx,dz);if(dist<2.4)ao=Math.min(ao,.42+.58*smooth(dist/2.4));}
   shade[k]=ao*(.93+.14*worldNoise(x,z,.4,2,90));}
- for(let j=0;j<n;j++)for(let i=0;i<n;i++){if(skipInside){const x=min+i*step,z=min+j*step;if(x>=-50&&x+step<=50&&z>=-50&&z+step<=50)continue;}const a=j*side+i,b=a+1,c=a+side,d=c+1;indices.push(a,c,b,b,c,d);}
+ for(let j=0;j<n;j++)for(let i=0;i<n;i++){if(skipInside){const x=min+i*step,z=min+j*step;if(x>=-ARENA&&x+step<=ARENA&&z>=-ARENA&&z+step<=ARENA)continue;}const a=j*side+i,b=a+1,c=a+side,d=c+1;indices.push(a,c,b,b,c,d);}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(positions,3));g.setAttribute('splat',new THREE.BufferAttribute(splat,3));g.setAttribute('shade',new THREE.BufferAttribute(shade,1));g.setIndex(indices);g.computeVertexNormals();return g;
 }
 
@@ -198,33 +200,34 @@ const colourCrates=[0x2f7f86,0xa5482f,0xc79a2e,0x51616c,0x3d6a44];
  */
 export function buildEnvironment(style:number,cover:Footprint[],footprints:Footprint[]){
  const group=new THREE.Group(),names=layerSets[style],ground=groundMaterial(style);group.name='environment';
- const inner=new THREE.Mesh(gridGeometry(style,-50,50,.5,false,footprints),ground);inner.name='terrain';inner.receiveShadow=true;group.add(inner);
- const outer=new THREE.Mesh(gridGeometry(style,-300,300,6.25,true,[]),ground);outer.name='landscape';outer.receiveShadow=true;outer.castShadow=true;group.add(outer);
- const rockMaterial=surfaceMaterial(names[2],{repeat:1}),bridgeZ=bridgeCenterZ();
- const blocked=(x:number,z:number,margin:number)=>footprints.some(r=>Math.abs(x-r.x)<r.w/2+margin&&Math.abs(z-r.z)<r.d/2+margin)||(Math.abs(z-bridgeZ)<6+margin&&Math.abs(x)<40);
+ const inner=new THREE.Mesh(gridGeometry(style,-ARENA,ARENA,terrainGrid.cell,false,footprints),ground);inner.name='terrain';inner.receiveShadow=true;group.add(inner);
+ const outer=new THREE.Mesh(gridGeometry(style,-400,400,8,true,[]),ground);outer.name='landscape';outer.receiveShadow=true;outer.castShadow=true;group.add(outer);
+ const rockMaterial=surfaceMaterial(names[2],{repeat:1}),layout=mapLayout(),walls=layout.rings.flatMap(ringWalls);
+ // Plants and stones stay off decks, liquids, cliff faces and ring walls.
+ const blocked=(x:number,z:number,margin:number)=>footprints.some(r=>Math.abs(x-r.x)<r.w/2+margin&&Math.abs(z-r.z)<r.d/2+margin)||layout.bridges.some(b=>bridgeLocal(b,x,z)!==null||Math.hypot(x-b.x,z-b.z)<b.half+margin)||(Math.abs(x)<ARENA&&Math.abs(z)<ARENA&&(terrainBlocked(x,z)||fluidSurface(x,z)!==null))||walls.some(w=>Math.hypot(x-w.x,z-w.z)<w.length/2+margin+.6);
  // Cover: one generated boulder cluster (or a stack of shipping containers in the foundry) per collision footprint.
  cover.forEach((r,index)=>{const base=terrainHeight(r.x,r.z);
   if(style===1){const long=r.w>r.d,length=Math.max(r.w,r.d),unit=Math.min(6,length),count=Math.max(1,Math.round(length/unit)),each=length/count;for(let i=0;i<count;i++)for(let level=0;level<2;level++){if(level&&((index+i)%3===0))continue;const w=long?each-.12:r.w,d=long?r.d:each-.12,h=level?1.6:1.9,crate=new THREE.Mesh(texturedBox(w,h,d,3),surfaceMaterial('container',{color:colourCrates[(index*3+i+level*2)%colourCrates.length],metalness:.35,roughness:.55}));const offset=(i-(count-1)/2)*each;crate.position.set(r.x+(long?offset:0),base+(level?1.9+h/2:h/2)-.05,r.z+(long?0:offset));if(level)crate.rotation.y=((index+i)%2?.04:-.05);crate.castShadow=crate.receiveShadow=true;group.add(crate);}}
-  else {const main=new THREE.Mesh(boulderGeometry(index*7+style*31+1,r.w*.62,2.5,r.d*.62,4),rockMaterial);main.position.set(r.x,base+1.25,r.z);main.castShadow=main.receiveShadow=true;group.add(main);
-   const random=seeded(index*97+13);for(let i=0;i<3;i++){const s=.7+random()*.55,side=random()<.5?-1:1,along=(random()-.5)*.8,small=new THREE.Mesh(boulderGeometry(index*11+i*5+3,s,s*.8,s,3),rockMaterial);const px=r.x+(r.w>r.d?along*r.w:side*(r.w/2-s*.5)),pz=r.z+(r.w>r.d?side*(r.d/2-s*.5):along*r.d);small.position.set(px,terrainHeight(px,pz)+s*.3,pz);small.rotation.y=random()*TAU;small.castShadow=small.receiveShadow=true;group.add(small);}}
+  else {const tall=2.3+Math.max(r.w,r.d)*.12,main=new THREE.Mesh(boulderGeometry(index*7+style*31+1,r.w*.62,tall,r.d*.62,4),rockMaterial);main.position.set(r.x,base+tall/2,r.z);main.castShadow=main.receiveShadow=true;group.add(main);
+   const random=seeded(index*97+13);for(let i=0,n=3+Math.round(Math.max(r.w,r.d)/4);i<n;i++){const s=.7+random()*.55,side=random()<.5?-1:1,along=(random()-.5)*.8,small=new THREE.Mesh(boulderGeometry(index*11+i*5+3,s,s*.8,s,3),rockMaterial);const px=r.x+(r.w>r.d?along*r.w:side*(r.w/2-s*.5)),pz=r.z+(r.w>r.d?side*(r.d/2-s*.5):along*r.d);small.position.set(px,terrainHeight(px,pz)+s*.3,pz);small.rotation.y=random()*TAU;small.castShadow=small.receiveShadow=true;group.add(small);}}
  });
  // Loose stones stay below tyre clearance, so none of them needs a collider.
- group.add(scatter(boulderGeometry(5,1,1,1,2,1.2),rockMaterial,style===1?90:260,(_,random)=>{const x=(random()-.5)*98,z=(random()-.5)*98;if(roadMask(x,z)>.3||blocked(x,z,.3))return null;const scale=.1+random()*random()*.3;return {x,y:terrainHeight(x,z)+scale*.12,z,scale,scaleY:scale*.6};},style*100+1,true));
+ group.add(scatter(boulderGeometry(5,1,1,1,2,1.2),rockMaterial,style===1?240:700,(_,random)=>{const x=(random()-.5)*(ARENA*2-2),z=(random()-.5)*(ARENA*2-2);if(roadMask(x,z)>.3||blocked(x,z,.3))return null;const scale=.1+random()*random()*.3;return {x,y:terrainHeight(x,z)+scale*.12,z,scale,scaleY:scale*.6};},style*100+1,true));
  // Boulders on the generated slopes outside the walls.
- if(style!==1)group.add(scatter(boulderGeometry(9,1,1,1,3,3),rockMaterial,70,(_,random)=>{const a=random()*TAU,r=58+random()*60,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.max(Math.abs(x),Math.abs(z))<54)return null;const scale=1+random()*2.6;return {x,y:landHeight(x,z,style)+scale*.2,z,scale,scaleY:scale*(.6+random()*.5)};},style*100+2,true));
+ if(style!==1)group.add(scatter(boulderGeometry(9,1,1,1,3,3),rockMaterial,150,(_,random)=>{const a=random()*TAU,r=ARENA+8+random()*90,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.max(Math.abs(x),Math.abs(z))<ARENA+4)return null;const scale=1+random()*2.6;return {x,y:landHeight(x,z,style)+scale*.2,z,scale,scaleY:scale*(.6+random()*.5)};},style*100+2,true));
  if(style===0){
   const tuft=tuftGeometry();
-  group.add(scatter(tuft,swayMaterial(0xd9c27a),1100,(_,random)=>{const x=(random()-.5)*150,z=(random()-.5)*150,inside=Math.max(Math.abs(x),Math.abs(z))<49.5;if(inside&&(roadMask(x,z)>.15||blocked(x,z,.5)))return null;const w=surfaceWeights(x,z,0);if(w[2]>.35||worldNoise(x,z,.06,3,55)<.47)return null;const scale=.5+random()*.5;return {x,y:landHeight(x,z,0)-.02,z,scale,scaleY:scale*(.8+random()*.6)};},31,false));
-  group.add(scatter(tuft,swayMaterial(0x8f9a55),170,(_,random)=>{const x=(random()-.5)*170,z=(random()-.5)*170,inside=Math.max(Math.abs(x),Math.abs(z))<49.5;if(inside&&(roadMask(x,z)>.05||blocked(x,z,1)))return null;if(surfaceWeights(x,z,0)[2]>.3)return null;const scale=.9+random()*.7;return {x,y:landHeight(x,z,0)-.03,z,scale,scaleY:scale*.75};},32,true));
+  group.add(scatter(tuft,swayMaterial(0xd9c27a),2800,(_,random)=>{const x=(random()-.5)*(ARENA*2+50),z=(random()-.5)*(ARENA*2+50),inside=Math.max(Math.abs(x),Math.abs(z))<ARENA-.5;if(inside&&(roadMask(x,z)>.15||blocked(x,z,.5)))return null;const w=surfaceWeights(x,z,0);if(w[2]>.35||worldNoise(x,z,.06,3,55)<.47)return null;const scale=.5+random()*.5;return {x,y:landHeight(x,z,0)-.02,z,scale,scaleY:scale*(.8+random()*.6)};},31,false));
+  group.add(scatter(tuft,swayMaterial(0x8f9a55),420,(_,random)=>{const x=(random()-.5)*(ARENA*2+70),z=(random()-.5)*(ARENA*2+70),inside=Math.max(Math.abs(x),Math.abs(z))<ARENA-.5;if(inside&&(roadMask(x,z)>.05||blocked(x,z,1)))return null;if(surfaceWeights(x,z,0)[2]>.3)return null;const scale=.9+random()*.7;return {x,y:landHeight(x,z,0)-.03,z,scale,scaleY:scale*.75};},32,true));
  }
  if(style===2){
-  group.add(scatter(tuftGeometry(),swayMaterial(0xa89868),420,(_,random)=>{const x=(random()-.5)*98,z=(random()-.5)*98;if(roadMask(x,z)>.1||blocked(x,z,.5))return null;const w=surfaceWeights(x,z,2);if(w[1]>.2||worldNoise(x,z,.07,3,58)<.5)return null;const scale=.3+random()*.3;return {x,y:terrainHeight(x,z)-.03,z,scale};},41,false));
-  group.add(scatter(pineGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85}),190,(_,random)=>{const x=(random()-.5)*230,z=(random()-.5)*230,d=Math.max(Math.abs(x),Math.abs(z))-50;if(d<((x>0&&x>=Math.abs(z))||(z>0&&z>=Math.abs(x))?7:2.5)||worldNoise(x,z,.03,3,61)<.42)return null;const scale=.9+random()*.9;return {x,y:landHeight(x,z,2)-.1,z,scale,scaleY:scale*(.9+random()*.5)};},42,true));
+  group.add(scatter(tuftGeometry(),swayMaterial(0xa89868),1100,(_,random)=>{const x=(random()-.5)*(ARENA*2-2),z=(random()-.5)*(ARENA*2-2);if(roadMask(x,z)>.1||blocked(x,z,.5))return null;const w=surfaceWeights(x,z,2);if(w[1]>.2||worldNoise(x,z,.07,3,58)<.5)return null;const scale=.3+random()*.3;return {x,y:terrainHeight(x,z)-.03,z,scale};},41,false));
+  group.add(scatter(pineGeometry(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85}),420,(_,random)=>{const x=(random()-.5)*(ARENA*2+230),z=(random()-.5)*(ARENA*2+230),d=Math.max(Math.abs(x),Math.abs(z))-ARENA;if(d<((x>0&&x>=Math.abs(z))||(z>0&&z>=Math.abs(x))?7:2.5)||worldNoise(x,z,.03,3,61)<.42)return null;const scale=.9+random()*.9;return {x,y:landHeight(x,z,2)-.1,z,scale,scaleY:scale*(.9+random()*.5)};},42,true));
  }
  if(style===1){
   // Sodium lamps: a real mesh for the fitting, an additive pool on the ground for its light.
   const pole=new THREE.CylinderGeometry(.09,.13,6,6);pole.translate(0,3,0);const arm=new THREE.BoxGeometry(1.5,.1,.14);arm.translate(.7,5.95,0);const head=new THREE.BoxGeometry(.6,.12,.3);head.translate(1.3,5.86,0);
-  const lamps:[number,number,number][]=[];for(let i=-3;i<=3;i++){lamps.push([-49,i*14,0],[49,i*14+7,Math.PI]);lamps.push([i*14+7,-49,-Math.PI/2],[i*14,49,Math.PI/2]);}for(const [x,z] of [[-12,10],[13,-6],[0,-31],[-28,16],[27,18],[0,12]])if(!blocked(x,z,.6))lamps.push([x,z,x>0?Math.PI:0]);
+  const lamps:[number,number,number][]=[];const edge=ARENA-1;for(let i=-7;i<=6;i++){lamps.push([-edge,i*14,0],[edge,i*14+7,Math.PI]);lamps.push([i*14+7,-edge,-Math.PI/2],[i*14,edge,Math.PI/2]);}for(const [x,z] of [[-24,20],[26,-12],[0,-62],[-56,32],[54,36],[0,24],[-60,-58],[60,58],[-30,-30],[32,30]])if(!blocked(x,z,.6))lamps.push([x,z,x>0?Math.PI:0]);
   const fittings=new THREE.InstancedMesh(joinGeometries([pole,arm,head]),new THREE.MeshStandardMaterial({color:0x2b3136,metalness:.7,roughness:.5}),lamps.length),bulbGeometry=new THREE.BoxGeometry(.46,.05,.2);bulbGeometry.translate(1.3,5.78,0);
   const bulbs=new THREE.InstancedMesh(bulbGeometry,new THREE.MeshBasicMaterial({color:new THREE.Color(1,.62,.24).multiplyScalar(2.2)}),lamps.length),pools:THREE.BufferGeometry[]=[];
   lamps.forEach(([x,z,rotation],i)=>{dummy.position.set(x,landHeight(x,z,1),z);dummy.rotation.set(0,rotation,0);dummy.scale.setScalar(1);dummy.updateMatrix();fittings.setMatrixAt(i,dummy.matrix);bulbs.setMatrixAt(i,dummy.matrix);pools.push(drapedDisc(x+Math.cos(rotation)*1.3,z-Math.sin(rotation)*1.3,8.5,1,new THREE.Color(.55,.3,.1)));});
@@ -232,8 +235,9 @@ export function buildEnvironment(style:number,cover:Footprint[],footprints:Footp
   const light=new THREE.Mesh(joinColored(pools),new THREE.MeshBasicMaterial({vertexColors:true,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));light.renderOrder=2;group.add(light);
   // Lit factory blocks beyond the fence; the emissive windows feed the bloom pass.
   const windows=windowTexture(),wall=surfaceMaterial('concrete',{repeat:1,color:0x7c8288});wall.emissiveMap=windows;wall.emissive=new THREE.Color(1,.66,.3);wall.emissiveIntensity=3.2;
-  const random=seeded(404);for(let i=0;i<34;i++){const a=i/34*TAU+random()*.1,r=66+random()*26,x=Math.cos(a)*r,z=Math.sin(a)*r,d=Math.max(Math.abs(x),Math.abs(z))-50,near=x+z>0,h=Math.min(near?d*.7:30,7+random()*17),w=7+random()*8,depth=7+random()*8,box=new THREE.Mesh(texturedBox(w,h,depth,8,true),wall);box.position.set(x,landHeight(x,z,1)+h/2-.5,z);box.rotation.y=Math.round(random()*2)*Math.PI/2;box.castShadow=box.receiveShadow=true;group.add(box);}
+  const random=seeded(404);for(let i=0;i<60;i++){const a=i/60*TAU+random()*.1,r=ARENA+16+random()*30,x=Math.cos(a)*r,z=Math.sin(a)*r,d=Math.max(Math.abs(x),Math.abs(z))-ARENA,near=x+z>0,h=Math.min(near?d*.7:30,7+random()*17),w=7+random()*8,depth=7+random()*8,box=new THREE.Mesh(texturedBox(w,h,depth,8,true),wall);box.position.set(x,landHeight(x,z,1)+h/2-.5,z);box.rotation.y=Math.round(random()*2)*Math.PI/2;box.castShadow=box.receiveShadow=true;group.add(box);}
  }
+ buildFluids(group);
  group.add(boundary(style));
  return group;
 }
@@ -244,7 +248,7 @@ function boundary(style:number){const positions:number[]=[],uvs:number[]=[],indi
  const strip=(points:[number,number][],nx:number,nz:number)=>{for(const side of [-1,1,0]){const start=positions.length/3;points.forEach(([x,z],i)=>{const base=Math.min(landHeight(x-nx*half,z-nz*half,style),landHeight(x+nx*half,z+nz*half,style))-.4,top=Math.max(terrainHeight(x,z),landHeight(x+nx*half,z+nz*half,style))+height;
    if(side){const px=x+nx*half*side,pz=z+nz*half*side;positions.push(px,base,pz,px,top,pz);uvs.push(i/3,0,i/3,(top-base)/3);}else{positions.push(x-nx*half,top,z-nz*half,x+nx*half,top,z+nz*half);uvs.push(i/3,0,i/3,.25);}
    if(i){const k=start+i*2;if(side===1)indices.push(k-2,k,k-1,k-1,k,k+1);else indices.push(k-2,k-1,k,k-1,k+1,k);}});}};
- const line=Array.from({length:101},(_,i)=>-50+i);strip(line.map(x=>[x,-50]),0,-1);strip(line.map(x=>[x,50]).reverse() as [number,number][],0,1);strip(line.map(z=>[-50,z]).reverse() as [number,number][],-1,0);strip(line.map(z=>[50,z]),1,0);
+ const line=Array.from({length:ARENA*2+1},(_,i)=>-ARENA+i);strip(line.map(x=>[x,-ARENA]),0,-1);strip(line.map(x=>[x,ARENA]).reverse() as [number,number][],0,1);strip(line.map(z=>[-ARENA,z]).reverse() as [number,number][],-1,0);strip(line.map(z=>[ARENA,z]),1,0);
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));g.setIndex(indices);g.computeVertexNormals();
  const material=surfaceMaterial(style===1?'concrete':layerSets[style][2],{color:style===1?0xe8e4dc:0xffffff});material.side=THREE.DoubleSide;const mesh=new THREE.Mesh(g,material);mesh.castShadow=mesh.receiveShadow=true;mesh.name='boundary';return mesh;}
 
