@@ -381,7 +381,8 @@ resize();const cameraFocus=player.mesh.position.clone();
 // Local development hooks for scripted screenshots; never active on the deployed site.
 if(typeof location!=='undefined'&&location.hostname==='localhost'){(globalThis as any).__player=player;(globalThis as any).__cars=cars;(globalThis as any).__skill=activateSkill;(globalThis as any).__state=skillOf;(globalThis as any).__fx=(x:number,z:number,n:number)=>burst(new THREE.Vector3(x,terrainHeight(x,z)+.8,z),n);
  // Dev-only aerial camera used by scripts/map-previews.cjs to render the arena cards in the deploy menu.
- (globalThis as any).__aerial=(style:number,yaw=.78,distance=118,pitch=.72)=>{selectedArena=style;buildArena();cars.forEach(c=>c.mesh.visible=false);overlay.style.display='none';aerial={yaw,distance,pitch};};}
+ (globalThis as any).__aerial=(style:number,yaw=.78,distance=118,pitch=.72)=>{selectedArena=style;buildArena();scene.fog=null;// the whole 200 m arena has to read from the air
+ cars.forEach(c=>c.mesh.visible=false);overlay.style.display='none';aerial={yaw,distance,pitch};};}
 const cameraOffset=new THREE.Vector3(Math.cos(CAMERA_PITCH)*Math.SQRT1_2,Math.sin(CAMERA_PITCH),Math.cos(CAMERA_PITCH)*Math.SQRT1_2).multiplyScalar(CAMERA_DISTANCE);camera.position.copy(player.mesh.position).add(cameraOffset);camera.lookAt(player.mesh.position);
 // Visual-only motion layered on the simulated car: wheels spin and steer, the sprung body leans into corners,
 // squats under acceleration, rocks back from its own gun and from hits, and the tail steps out in hard turns.
