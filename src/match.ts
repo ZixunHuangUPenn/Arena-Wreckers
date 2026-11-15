@@ -1,7 +1,9 @@
 export type Mode='team'|'capture'|'elimination'|'horde'|'ctf'|'charge';
+/** Capture zone centres; the terrain generator moves them with each layout. */
+export const capturePoints:{x:number;z:number}[]=[{x:-25,z:4},{x:0,z:10},{x:26,z:-4}];
 export class Match {
  mode:Mode; time=180; scores=[0,0]; winner:number|null=null;ended=false;
- points=[{x:-25,z:4,owner:-1,progress:0},{x:0,z:10,owner:-1,progress:0},{x:26,z:-4,owner:-1,progress:0}];
+ points=capturePoints.map(p=>({x:p.x,z:p.z,owner:-1,progress:0}));
  constructor(mode:Mode){this.mode=mode;if(mode==='horde')this.time=600;}
  kill(team:number){if(['capture','ctf','charge'].includes(this.mode))return;this.scores[team]++;if(this.mode==='team'&&this.scores[team]>=20)this.finish(team);}
  finish(winner:number){this.winner=winner;this.ended=true;}
