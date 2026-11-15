@@ -80,3 +80,13 @@ Gameplay geometry, collision, sight lines and AI are untouched. `npm test` also 
 **Gaussian splatting** was evaluated and not adopted: splat scenes come from photo captures of real places, cannot be generated procedurally, are static with baked lighting (no dynamic shadows from cars, no collision) and typically weigh tens to hundreds of megabytes, which is a poor fit for a phone-first GitHub Pages game. It remains an option for a static showroom backdrop if a capture is supplied.
 
 Verification: `npm test` passes, including the new arena's relief and slope limits and the bounded effects system; `npm run build` passes; all four arenas, the garage and an explosion were screenshotted in headless Chromium at medium quality and one arena at high quality, with no console errors. Software rendering only: frame rate, touch latency and audio on real devices are unverified. Photo-scanned CC0 materials could not be fetched in the build environment, so all surfaces remain generated.
+
+## Audio
+
+All sound is synthesised at run time with the Web Audio API in `src/audio.ts`, so the game ships no sound files and has no third-party audio licences. Voices are panned by their screen position (the camera is a fixed diagonal, so screen-right is world `(1,0,-1)`) and fade with distance; everything runs through a compressor and a short synthetic reverb.
+
+- **Engines.** The player's engine is about half its previous level. Up to four nearby enemy vehicles get their own positional engines; each of the five chassis has its own pitch, range and "chug" (the big rig is low and lumpy, the mantis high and smooth).
+- **Combat.** Per-weapon gunshots that lose their top end and gain reverb with distance, shell casings, armour pings and ground hits, rocket launch hiss, car-to-wall and car-to-car crashes, layered explosions with debris rattle, airstrike whistles, skill sounds and pickup chimes.
+- **Battlefield ambience.** Per-arena wind and room tone (foundry metal creaks, caldera lava bubbling, colder and windier frostline) plus distant artillery, rolling gunfire and fly-overs that come more often as the fight heats up.
+
+Levels were checked by rendering each sound offline in headless Chromium; the mix has not been heard on a real phone yet.
