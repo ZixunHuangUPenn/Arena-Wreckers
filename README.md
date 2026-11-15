@@ -64,3 +64,19 @@ Visual overhaul. `src/environment.ts` generates every arena surface at load time
 `src/render-pipeline.ts` adds image-based lighting from a generated sky per arena (golden-hour desert, moonlit foundry, cold morning snowfield), ACES tone mapping, a texel-snapped shadow frustum that follows the camera, bloom and a colour grade with vignette. Quality tiers: low renders directly with no shadows or post-processing; medium adds 1024 shadows, bloom and grading; high adds 2048 shadows and 4x MSAA.
 
 Gameplay geometry, collision, sight lines and AI are untouched. `npm test` also builds all three generated environments headlessly. Screenshots were checked in headless Chromium with software rendering only; frame rate on real phones and GPUs is unverified.
+
+## Build 16
+
+**Camera and lens.** The orthographic camera is replaced by a perspective camera at the same heading (so screen-relative controls are unchanged), 39 degrees of pitch and a field of view chosen to keep the old playfield coverage. Distance haze now works, the generated landscape extends to 300m, and the bridge fades when its deck is between the camera and the player. A Gaussian-weighted lens blur grows towards the top and bottom of the frame (with a fixed-pitch camera, screen height tracks distance along the ground, so no depth buffer is needed). The high tier adds ground-truth ambient occlusion (GTAO). Baked textures are 512px on desktop and 256px on touch devices.
+
+**Vehicles.** `src/vehicle-models.ts` generates all five vehicles: hulls are lofted rounded cross-sections, with clear-coat paint, tinted glass, chrome, emissive lamps, tread-profiled tyres on spoked rims and a weapon per vehicle on a `Turret` node. The glTF reconstructions are no longer used for cars. Wheels spin and steer; the body is sprung, leans into corners, squats under acceleration, steps its tail out in hard turns and rocks from recoil and hits. All of this is visual: collision boxes and handling numbers are unchanged.
+
+**Combat effects.** `src/combat-effects.ts` is rewritten around two GPU point clouds (alpha smoke, additive fire) and one decal mesh: fireballs, rolling smoke, bouncing sparks and debris, shockwave rings, scorch and tyre marks, arena-coloured dust, damage smoke and fire, plus two pooled point lights for blast and muzzle flashes (off on the low tier). Capacity is fixed at 640 particles and 220 decals.
+
+**Feel.** Trauma-style camera shake with roll that scales with blast distance, a short hit-stop on kills and heavy hits, a speed- and boost-sensitive field of view, per-weapon gunshot sounds (previously silent), a two-voice filtered engine and a sub-bass layer under explosions.
+
+**Content.** A fourth arena, Caldera: ash ground, basalt rims and a ring of cracked lava crust whose seams emit light. Horde waves 2, 4 and 5 add a fragile suicide buggy that chases the player and detonates; waves 4 to 6 add an armoured elite. Three more milestones (10 matches, 5000 damage, 100 kills).
+
+**Gaussian splatting** was evaluated and not adopted: splat scenes come from photo captures of real places, cannot be generated procedurally, are static with baked lighting (no dynamic shadows from cars, no collision) and typically weigh tens to hundreds of megabytes, which is a poor fit for a phone-first GitHub Pages game. It remains an option for a static showroom backdrop if a capture is supplied.
+
+Verification: `npm test` passes, including the new arena's relief and slope limits and the bounded effects system; `npm run build` passes; all four arenas, the garage and an explosion were screenshotted in headless Chromium at medium quality and one arena at high quality, with no console errors. Software rendering only: frame rate, touch latency and audio on real devices are unverified. Photo-scanned CC0 materials could not be fetched in the build environment, so all surfaces remain generated.
