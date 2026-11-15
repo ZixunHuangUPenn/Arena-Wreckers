@@ -29,6 +29,8 @@ const wrap=(n:number,p:number)=>p?((n%p)+p)%p:n;
 /** Value noise; `period` (in lattice cells) makes it tile, 0 leaves it unbounded. */
 function vnoise(x:number,y:number,period:number,seed:number){const xf=Math.floor(x),yf=Math.floor(y),fx=x-xf,fy=y-yf,sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);let x0=xf|0,y0=yf|0,x1=x0+1,y1=y0+1;if(period){x0%=period;if(x0<0)x0+=period;y0%=period;if(y0<0)y0+=period;x1=x0+1===period?0:x0+1;y1=y0+1===period?0:y0+1;}const a=hash(x0,y0,seed),b=hash(x1,y0,seed),c=hash(x0,y1,seed),d=hash(x1,y1,seed);return lerp(lerp(a,b,sx),lerp(c,d,sx),sy);}
 function fbm(u:number,v:number,period:number,octaves:number,seed:number){let sum=0,amp=.5,total=0,p=period;for(let o=0;o<octaves;o++){sum+=amp*vnoise(u*p,v*p,p,seed+o*17);total+=amp;amp*=.5;p*=2;}return sum/total;}
+/** Tileable fractal noise in 0..1, shared with the particle textures. */
+export const tileNoise=fbm;
 /** Tileable cellular noise: distances to the nearest and second-nearest feature points. */
 function worley(u:number,v:number,period:number,seed:number):[number,number]{const x=u*period,y=v*period,x0=Math.floor(x),y0=Math.floor(y);let f1=9,f2=9;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const cx=x0+i,cy=y0+j,wx=wrap(cx,period),wy=wrap(cy,period),px=cx+hash(wx,wy,seed),py=cy+hash(wx,wy,seed+91),d=Math.hypot(px-x,py-y);if(d<f1){f2=f1;f1=d;}else if(d<f2)f2=d;}return [f1,f2];}
 /** Unbounded world-space noise in metres. */
