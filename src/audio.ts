@@ -130,11 +130,17 @@ export class GameAudio{
  crash(x:number,z:number,strength:number){if(!this.ready()||this.crashCooldown>0)return;const {distance,pan}=this.where(x,z);if(distance>35)return;this.crashCooldown=.08;try{const v=falloff(distance,12)*Math.max(.3,Math.min(1,strength));
   this.noiseBurst({type:'lowpass',freq:700,level:.16*v,length:.25,pan,decay:true,send:.12});this.tone({type:'square',from:150+Math.random()*60,to:70,level:.05*v,length:.18,pan});
   this.tone({type:'triangle',from:620+Math.random()*300,to:480,level:.025*v,length:.35,pan,send:.15});}catch{}}
- /** Skill activations: 0 nitro, 1 mine drop, 2 ram, 3 airstrike marker, 4 shockwave. */
- skill(kind:number,x:number,z:number){if(!this.ready())return;const {distance,pan}=this.where(x,z);if(distance>45)return;try{const v=falloff(distance);
-  if(kind===0||kind===2){this.noiseBurst({type:'bandpass',freq:700,sweepTo:3000,q:1,level:.09*v,length:.6,attack:.03,pan});this.tone({type:'sawtooth',from:80,to:160,level:.05*v,length:.5,pan});}
-  else if(kind===1){this.tone({type:'square',from:220,to:180,level:.04*v,length:.08,pan});this.tone({at:this.ctx!.currentTime+.1,type:'sine',from:1400,level:.03*v,length:.06,pan});}
-  else if(kind===3){for(let i=0;i<3;i++)this.tone({at:this.ctx!.currentTime+i*.16,type:'square',from:1100,level:.025*v,length:.09,pan});}
+ /** Skill sounds: 0 cloak, 1 grapple launch, 2 overdrive, 3 barrage call, 4 dome up, 5 grapple hit, 6 arc zap, 7 dome blast, 8 cloak break, 9 ram. */
+ skill(kind:number,x:number,z:number){if(!this.ready())return;const {distance,pan}=this.where(x,z);if(distance>45)return;try{const v=falloff(distance),t=this.ctx!.currentTime;
+  if(kind===0){this.tone({type:'sine',from:1800,to:240,level:.05*v,length:.55,pan,send:.3});this.noiseBurst({type:'highpass',freq:5000,sweepTo:900,level:.04*v,length:.5,attack:.05,pan,send:.3});}
+  else if(kind===8){this.tone({type:'sine',from:260,to:1500,level:.045*v,length:.25,pan,send:.2});this.noiseBurst({type:'bandpass',freq:1200,sweepTo:4200,level:.04*v,length:.2,pan});}
+  else if(kind===1){this.noiseBurst({type:'bandpass',freq:1800,sweepTo:500,q:2,level:.1*v,length:.22,pan});for(let i=0;i<5;i++)this.tone({at:t+i*.035,type:'square',from:900+Math.random()*500,to:600,level:.018*v,length:.03,pan});}
+  else if(kind===5){this.tone({type:'square',from:420,to:160,level:.08*v,length:.16,pan});this.tone({type:'triangle',from:2400,to:1800,level:.03*v,length:.3,pan,send:.2});this.noiseBurst({type:'lowpass',freq:600,level:.12*v,length:.2,pan,decay:true});}
+  else if(kind===2){this.tone({type:'sawtooth',from:110,to:440,level:.05*v,length:.5,pan});this.tone({type:'square',from:60,to:62,level:.03*v,length:.6,pan});this.noiseBurst({type:'highpass',freq:3500,level:.05*v,length:.45,attack:.1,pan,send:.2});}
+  else if(kind===6){this.noiseBurst({type:'highpass',freq:2800+Math.random()*1500,level:.05*v,length:.09,pan});this.tone({type:'sawtooth',from:1900+Math.random()*600,to:300,level:.025*v,length:.08,pan});}
+  else if(kind===3){for(let i=0;i<3;i++)this.tone({at:t+i*.16,type:'square',from:1100,level:.025*v,length:.09,pan});}
+  else if(kind===4){this.tone({type:'sine',from:70,to:210,level:.16*v,length:.6,pan,attack:.08,send:.3});this.tone({type:'triangle',from:420,to:840,level:.04*v,length:.5,pan,attack:.1,send:.3});}
+  else if(kind===9){this.noiseBurst({type:'lowpass',freq:500,level:.2*v,length:.3,pan,decay:true,send:.15});this.tone({type:'square',from:120,to:50,level:.08*v,length:.25,pan});}
   else{this.tone({type:'sine',from:90,to:30,level:.3*v,length:.7,pan});this.noiseBurst({type:'lowpass',freq:500,sweepTo:120,level:.15*v,length:.7,pan,decay:true,send:.4});}}catch{}}
  /** Incoming airstrike whistle before the telegraphed impact. */
  whistle(x:number,z:number,seconds:number){if(!this.ready())return;const {distance,pan}=this.where(x,z);if(distance>55)return;try{this.tone({type:'sine',from:2100,to:700,level:.025*falloff(distance),length:Math.max(.3,seconds),pan,attack:.2,send:.2});}catch{}}
