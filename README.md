@@ -28,7 +28,9 @@ Requires a supported Node.js release. Run `npm install`, `npm run dev`, `npm tes
 - `src/physics.ts`: oriented collision boxes and swept projectile tests.
 - `src/match.ts`: match scoring and end conditions.
 - `src/handling.ts`: vehicle parameters and screen/world angle conversion.
-- `src/terrain.ts`: continuous heightfields shared by graphics and driving.
+- `src/terrain.ts`: seeded terrain library (gorges, rivers, plateaus, lakes, waterfalls, hills, ring arenas), objective placement and the baked heightfield shared by graphics, driving and AI.
+- `src/bridge.ts`: bridge decks, deck/ground collision and the bridge and ring-wall meshes.
+- `src/water.ts`: water, lava, molten metal, toxic pools, frozen lakes and waterfalls.
 - `src/profile.ts`: validated local save data, upgrades, rewards and configuration.
 - `src/interface.ts` and `src/interface.css`: menu shell and rendered vehicle/weapon previews.
 - `vite.config.ts`: static build and offline cache generation.
@@ -109,3 +111,26 @@ Verification: `npm test` and `npm run build` pass; the three steps were screensh
 - Feedback effects: panels slide in on page change, selected cards and primary buttons get a shine sweep, purchases fire a spark burst with a floating "+8%" label and pulse the parts counter, and changing car or paint sweeps a light across the showroom. All of this respects `prefers-reduced-motion`.
 - Settings, career and results use the same style as the rest of the menu. Native selects are replaced by segmented controls, sliders and checkboxes are custom-styled, touch-only options are hidden in keyboard mode, the career page has a level ring and XP bar, and results animate in.
 - The welcome card asks for AI difficulty (writes the existing `settings.difficulty`).
+
+## Build 18 · Terrain library
+
+**Every battle is a new map.** `src/terrain.ts` composes each arena from a seeded library of landforms and validates it before use: a gorge or river that splits the two halves and can only be crossed on two or three bridges, cliff-edged plateaus with drivable ramps, lakes, waterfalls that pour off a plateau into a plunge pool, hills, and walled ring arenas with four gates. Themes weight the library and pick the liquid: desert water, foundry molten-metal trenches and toxic pools, frozen lakes and icy rivers on Frostline, lava rivers, lava lakes and lavafalls in the Caldera. Spawns, capture zones, flags, pickups, barrels, the charge core and cover are placed on open ground for each layout, and a flood fill on a 1 m navigation grid (with car clearance) rejects any layout where they are not all connected. Starting a battle rolls a new seed; the toast names the landforms. `?seed=1234` replays one layout.
+
+**One heightfield for everything.** The layout is baked to the same 0.5 m grid the ground mesh uses, and `terrainHeight` interpolates on the same triangles, so what you see is exactly what the car drives on. Cliff faces, gorge floors, deep water and lava are marked impassable; the gorge also cuts on through the mountains beyond the wall.
+
+**Bridge fix.** The old overpass trapped cars: its 8 m ramps had solid rails on both sides, any turn into a rail bounced the car back to zero speed, rotating was refused while touching a rail, and the ramp ended 12 m from the wall, so the car had to turn there. Bridges now sit level with the rims over a gorge (nothing passes underneath, so no upper/lower ambiguity), decks are 8.6 m wide, glancing contact with rails, rock faces or walls slides along them, and a car pressed against an edge is eased away so it can still turn. The AI planner routes over bridges and objectives keep the bridge run-ups clear.
+
+`npm test` generates 20 layouts (4 themes x 5 seeds) and checks relief, open ground, objective placement and connectivity, drives every vehicle across every bridge both ways, crashes each into the railing and drives it out, and has the AI planner cross the gorge.
+
+
+## Build 19 · Bigger maps
+
+**Four times the area.** Arenas are now 200 × 200 m (walls at ±100 m, `ARENA` in `src/terrain.ts`). The heightfield is baked every 0.625 m (321 × 321), which keeps the ground mesh at about 100k vertices. The camera bounds, minimap, AI route grid, boundary walls, outer landscape, scattered rocks and plants, foundry lamps and factory skyline all scale with `ARENA`.
+
+**Diagonal starts.** Blue spawns in the bottom-left corner and red in the top-right, and cars face the centre when they spawn. The main gorge or river runs corner to corner between the two bases and is crossed by three or four bridges.
+
+**More of the library on every map.** On top of the main channel, a layout can have a tributary of the other kind (a river joining a gorge or the reverse) with its own one or two bridges. It can also have a sunken road with an overpass across it: you can drive down the ramps and under the deck, or over the deck. There are three to five plateaus (up to two with waterfalls), two to four sheer rock spires that block shots and sight, two to four lakes, up to two walled rings and eight to thirteen hills. Channels can now run in any direction (`Channel.ax/az`). Sunken roads ramp in and out over 17 m. Deck edges over a drop of more than 2.8 m are impassable, so cars cannot fall off an overpass. The AI planner never links the deck to the road beneath it.
+
+**Cover.** Barrels went from six to one linked pair, and the small crate yards are gone. Cover is now 12 to 14 large rock outcrops or container walls, 6 to 12 m long, with taller boulders. There are eight pickups instead of four.
+
+**Generation cost.** Bounding-box early-outs in the shape functions, a band test before channel distance, one bake per successful attempt and a rasterised navigation mask bring generation to about 0.2 to 0.9 s per layout in Node. On a phone, expect roughly two to three times that when a battle starts. This has not been measured on a real device.
