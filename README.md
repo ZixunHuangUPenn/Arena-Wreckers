@@ -100,3 +100,10 @@ Levels were checked by rendering each sound offline in headless Chromium; the mi
 **Menu flow.** The garage is now a guided three-step flow shown in a stepper at the top: 1 选车 (vehicle panel with an offence/defence balance bar, four stat bars, main weapon and active skill, arrows and five cards), 2 改装 (weapon variant cards with real numbers, upgrades, paint swatches and a loadout summary), 3 出战 (modes, illustrated arena cards, briefing and one pulsing start button). A bottom action bar always shows where you are, what to do and the next step. Career and settings sit behind the profile chip and gear icon. First launch shows a redesigned welcome card. The menu now fills the safe area instead of letterboxing, in landscape and portrait.
 
 Verification: `npm test` and `npm run build` pass; the three steps were screenshotted at 1280×720, 844×390 and 390×844 in headless Chromium with software rendering. Frame rate on real phones is unverified.
+
+## Build 18 — menu polish
+
+- The loadout step is now a tabbed panel (武器 / 升级 / 涂装). The weapon tab has a showcase with the remodelled gun and variant cards with damage and fire-rate comparison bars. Upgrade cards show level pips and the current → next value, with a buy button. Paint swatches show owned, in-use and locked/price states.
+- Feedback effects: panels slide in on page change, selected cards and primary buttons get a shine sweep, purchases fire a spark burst with a floating "+8%" label and pulse the parts counter, and changing car or paint sweeps a light across the showroom. All of this respects `prefers-reduced-motion`.
+- Settings, career and results use the same style as the rest of the menu. Native selects are replaced by segmented controls, sliders and checkboxes are custom-styled, touch-only options are hidden in keyboard mode, the career page has a level ring and XP bar, and results animate in.
+- The welcome card asks for AI difficulty (writes the existing `settings.difficulty`).
