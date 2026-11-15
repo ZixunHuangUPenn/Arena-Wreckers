@@ -109,3 +109,10 @@ Verification: `npm test` and `npm run build` pass; the three steps were screensh
 - Feedback effects: panels slide in on page change, selected cards and primary buttons get a shine sweep, purchases fire a spark burst with a floating "+8%" label and pulse the parts counter, and changing car or paint sweeps a light across the showroom. All of this respects `prefers-reduced-motion`.
 - Settings, career and results use the same style as the rest of the menu. Native selects are replaced by segmented controls, sliders and checkboxes are custom-styled, touch-only options are hidden in keyboard mode, the career page has a level ring and XP bar, and results animate in.
 - The welcome card asks for AI difficulty (writes the existing `settings.difficulty`).
+
+## Build 19 — visual mode, arena and vehicle select
+- **Deploy screen**: the selected arena's aerial render fills the whole background (slow pan, cross-fade on change, drifting dust). Mode cards are illustrated 3D key art; the arena hero card plays a reveal and scan-line effect; the ready card shows the chosen car.
+- **Assets are all rendered in-house** from the game's own procedural models and terrain, with no third-party art:
+  - `public/assets/maps/arena-N.jpg` — aerial renders of the real arena scene. After a terrain change, run `npx vite --port 5173` and then `node scripts/map-previews.cjs` to regenerate them (uses the dev-only `__aerial` hook on localhost).
+  - `public/assets/modes/*.jpg` — staged scenes rendered from `lab.html?mode=<id>` (`src/lab.ts`).
+- **Vehicle cards**: studio spot, turntable floor ellipse, floor reflection, class code and armour/speed/firepower mini-bars. The info panel shows `skillDescription` (or `skillDesc`) from the vehicle spec when one is present.
