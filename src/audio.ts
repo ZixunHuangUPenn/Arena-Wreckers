@@ -8,6 +8,8 @@
 //   reverb    : a short synthetic room/valley tail that explosions and distant events send into
 // The compressor glues everything and stops stacked explosions from clipping on phone speakers.
 
+import {ArenaMusic} from './music';
+
 export type EngineSource={x:number;z:number;revs:number;boost:boolean;loadout:number;alive:boolean};
 
 /** Base engine pitch (Hz at idle), pitch range and brightness per vehicle (mantis, punisher, retro, pummeler, bigrig). */
@@ -45,7 +47,7 @@ export class GameAudio{
  private player:EngineVoice|null=null;private enemies:EngineVoice[]=[];
  private wind:{source:AudioBufferSourceNode;filter:BiquadFilterNode;gain:GainNode;lfo:OscillatorNode}|null=null;
  private bed:{osc:OscillatorNode[];gain:GainNode}|null=null;
- private arena=0;private listenerX=0;private listenerZ=0;private nextDistant=3;private nextTexture=2;private intensity=0;private crashCooldown=0;private active=false;
+ private arena=0;private listenerX=0;private listenerZ=0;private nextDistant=3;private nextTexture=2;private intensity=0;private crashCooldown=0;private music:ArenaMusic|null=null;private musicVolume=.6;private active=false;
 
  /** Create the context lazily from a user gesture (required by iOS Safari). */
  start(){if(!this.ctx){try{const Ctor=(globalThis as any).AudioContext??(globalThis as any).webkitAudioContext;if(!Ctor)return;this.ctx=new Ctor() as AudioContext;this.build();}catch{this.ctx=null;return;}}void this.ctx.resume?.();}
@@ -56,6 +58,10 @@ export class GameAudio{
  setArena(index:number){this.arena=Math.max(0,Math.min(ARENA_AMBIENCE.length-1,index|0));this.applyAmbience();}
  /** Whether the battle is running; ambience and engines fade out in menus and pauses. */
  setActive(value:boolean){this.active=value;this.applyAmbience();}
+ /** In-match music (see ./music): volume 0..100, start with the arena's track, fade out at match end. */
+ setMusicVolume(percent:number){this.musicVolume=Math.max(0,Math.min(1,percent/100));this.music?.setVolume(percent);}
+ startMusic(arena:number){this.music?.start(arena);}
+ stopMusic(){this.music?.stop();}
  setListener(x:number,z:number){this.listenerX=x;this.listenerZ=z;}
 
  private applyMaster(){if(!this.ctx)return;this.master.gain.setTargetAtTime(this.muted?0:this.volume,this.ctx.currentTime,.05);}
@@ -69,6 +75,7 @@ export class GameAudio{
   // Synthetic stereo impulse response: decaying noise with a darker tail, about 1.6 s.
   const irLength=Math.floor(ctx.sampleRate*1.6),ir=ctx.createBuffer(2,irLength,ctx.sampleRate);for(let c=0;c<2;c++){const ch=ir.getChannelData(c);let lp=0;for(let i=0;i<irLength;i++){const t=i/irLength;lp+=((Math.random()*2-1)-lp)*(.5-.42*t);ch[i]=lp*Math.pow(1-t,2.4)*(i<ctx.sampleRate*.012?0:1);}}
   this.reverb=ctx.createConvolver();this.reverb.buffer=ir;this.reverbSend=ctx.createGain();this.reverbSend.gain.value=.55;this.reverbSend.connect(this.reverb);this.reverb.connect(this.master);
+  this.music=new ArenaMusic(ctx,this.master,this.noise);this.music.setVolume(this.musicVolume*100);
   this.player=this.makeEngine(1);for(let i=0;i<ENEMY_VOICES;i++)this.enemies.push(this.makeEngine(1,true));
   this.buildAmbience();}
 
@@ -121,7 +128,7 @@ export class GameAudio{
   this.noiseBurst({type:armour?'highpass':'bandpass',freq:armour?2400:900,level:(heavy?.08:.035)*v,length:heavy?.18:.07,pan,send:.1});
   if(heavy)this.noiseBurst({type:'lowpass',freq:400,level:.1*v,length:.35,pan,decay:true,send:.3});}catch{}}
  /** Explosion with sub thump, crackle, debris rattle and a reverb tail. Size ~1 for a car. */
- explosion(x:number,z:number,size=1){if(!this.ready())return;const {distance,pan}=this.where(x,z);if(distance>70)return;try{const ctx=this.ctx!,t=ctx.currentTime,v=falloff(distance,18)*Math.min(1.4,.6+size*.4),far=Math.min(1,distance/70);this.intensity=Math.min(1,this.intensity+.25);
+ explosion(x:number,z:number,size=1){if(!this.ready())return;const {distance,pan}=this.where(x,z);if(distance>70)return;try{const ctx=this.ctx!,t=ctx.currentTime,v=falloff(distance,18)*Math.min(1.4,.6+size*.4),far=Math.min(1,distance/70);this.intensity=Math.min(1,this.intensity+.25);if(distance<30)this.music?.duck(.45*Math.min(1,size)*(1-distance/30),.7);
   this.noiseBurst({type:'lowpass',freq:1400*(1-far*.7),sweepTo:220,level:.2*v,length:.55+size*.15,pan,decay:true,send:.35+far*.4});
   this.tone({type:'sine',from:120,to:28,level:.34*v,length:.6,pan,attack:.005});
   this.noiseBurst({type:'bandpass',freq:3000,q:.6,level:.05*v*(1-far),length:.12,pan});
@@ -170,7 +177,7 @@ export class GameAudio{
   else if(kind==='metal'){const f=180+Math.random()*260;this.tone({type:'triangle',from:f,to:f*.97,level:.014,length:1.2,pan,bus:this.ambience,send:.6,attack:.01});this.tone({type:'sine',from:f*2.76,level:.006,length:.9,pan,bus:this.ambience,send:.6});}}
 
  /** Per-frame housekeeping: schedules ambience and lets combat intensity decay. */
- update(dt:number){if(!this.ctx)return;this.crashCooldown=Math.max(0,this.crashCooldown-dt);this.intensity=Math.max(0,this.intensity-dt*.08);if(!this.active||this.muted)return;
+ update(dt:number){if(!this.ctx)return;this.crashCooldown=Math.max(0,this.crashCooldown-dt);this.intensity=Math.max(0,this.intensity-dt*.08);this.music?.setIntensity(this.intensity);if(!this.active||this.muted)return;
   try{this.nextDistant-=dt;if(this.nextDistant<=0){this.distantEvent();this.nextDistant=2.5+Math.random()*5*(1-this.intensity*.5);}
    this.nextTexture-=dt;if(this.nextTexture<=0){this.texture();this.nextTexture=1.5+Math.random()*4;}}catch{}}
 }

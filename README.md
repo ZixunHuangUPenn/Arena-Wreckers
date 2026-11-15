@@ -35,7 +35,7 @@ Requires a supported Node.js release. Run `npm install`, `npm run dev`, `npm tes
 
 ## Build 10
 
-Five reconstructed textured glTF vehicles: Mantis (machine gun / Nitro), Punisher (shotgun / incendiary mine), Retro (pulse / Charge), Pummeler (rockets / Air Strike), Bigrig (howitzer / Kinetic Shock). Skills follow the reference archetypes; fixed weapon assignments are our gameplay choices. Models are independently rebuilt, not original Glu assets. Downloaded CC0 components and provenance: `public/assets/vendor/SOURCES.md`.
+Five vehicles, each with its own weapon, active skill and passive: Kestrel (machine gun / Cloak), Grapnel (shotgun / Grapple), Arclight (pulse / Overdrive), Bombard (rockets / Creeping Barrage), Bulwark (howitzer / Fortress Dome). Names, skills and models are our own; internal ids and asset filenames keep the earlier working names. Downloaded CC0 components and provenance: `public/assets/vendor/SOURCES.md`.
 
 Shots have maximum horizontal flight distances of 16/11/20/22/18m. Vehicle vision is 22/19/21/20/18m; cover blocks sight, enemy health bars and radar contacts. AI retains last seen locations briefly instead of tracking hidden enemies. The HUD uses a uniformly scaled coordinate frame and Safari safe-area insets; projected labels use that same frame. Deployment has one shared start action for both buttons.
 
@@ -89,6 +89,8 @@ All sound is synthesised at run time with the Web Audio API in `src/audio.ts`, s
 - **Combat.** Per-weapon gunshots that lose their top end and gain reverb with distance, shell casings, armour pings and ground hits, rocket launch hiss, car-to-wall and car-to-car crashes, layered explosions with debris rattle, airstrike whistles, skill sounds and pickup chimes.
 - **Battlefield ambience.** Per-arena wind and room tone (foundry metal creaks, caldera lava bubbling, colder and windier frostline) plus distant artillery, rolling gunfire and fly-overs that come more often as the fight heats up.
 
+- **Arena music** (`src/music.ts`). An original, procedurally sequenced electronic track per arena, each with its own key, tempo, chord loop and seeded patterns: Sandstone D minor 126 BPM, Foundry E minor 132 BPM with metallic claps, Frostline A minor 120 BPM with bell arps and swing, Caldera C minor 140 BPM. Kick, clap, hats, filtered bass with sub, arp with dotted-eighth echo, pad, a lead in the peak section, and risers and crashes into each drop. The song cycles intro, groove, drive, break and peak; heavy fighting pushes it into the fuller sections sooner. The kick side-chains the melodic parts and big explosions briefly duck the music. Music volume has its own slider in Settings (default 60).
+
 Levels were checked by rendering each sound offline in headless Chromium; the mix has not been heard on a real phone yet.
 
 ## Build 17
@@ -100,3 +102,24 @@ Levels were checked by rendering each sound offline in headless Chromium; the mi
 **Menu flow.** The garage is now a guided three-step flow shown in a stepper at the top: 1 选车 (vehicle panel with an offence/defence balance bar, four stat bars, main weapon and active skill, arrows and five cards), 2 改装 (weapon variant cards with real numbers, upgrades, paint swatches and a loadout summary), 3 出战 (modes, illustrated arena cards, briefing and one pulsing start button). A bottom action bar always shows where you are, what to do and the next step. Career and settings sit behind the profile chip and gear icon. First launch shows a redesigned welcome card. The menu now fills the safe area instead of letterboxing, in landscape and portrait.
 
 Verification: `npm test` and `npm run build` pass; the three steps were screenshotted at 1280×720, 844×390 and 390×844 in headless Chromium with software rendering. Frame rate on real phones is unverified.
+
+## Build 18 — menu polish
+
+- The loadout step is now a tabbed panel (武器 / 升级 / 涂装). The weapon tab has a showcase with the remodelled gun and variant cards with damage and fire-rate comparison bars. Upgrade cards show level pips and the current → next value, with a buy button. Paint swatches show owned, in-use and locked/price states.
+- Feedback effects: panels slide in on page change, selected cards and primary buttons get a shine sweep, purchases fire a spark burst with a floating "+8%" label and pulse the parts counter, and changing car or paint sweeps a light across the showroom. All of this respects `prefers-reduced-motion`.
+- Settings, career and results use the same style as the rest of the menu. Native selects are replaced by segmented controls, sliders and checkboxes are custom-styled, touch-only options are hidden in keyboard mode, the career page has a level ring and XP bar, and results animate in.
+- The welcome card asks for AI difficulty (writes the existing `settings.difficulty`).
+
+## Vehicle kits
+
+Each car has one active skill (Q or the skill button) and one passive. Rules and numbers live in `src/skills.ts`, the dome, cable and lightning meshes in `src/skill-effects.ts`. The vehicle page shows the full write-up beside the car.
+
+| Car | Role | Active | Passive |
+|---|---|---|---|
+| Kestrel 幽隼 | Stealth assassin | Cloak: unseen beyond 6 m for 5 s, firing breaks it and grants ×1.5 damage for 1.5 s | Backstab: +30% from behind |
+| Grapnel 铁钩 | Close-range control | Grapple: drags an enemy within 17 m to the bumper and slows it | Close armour: −25% damage from within 9 m |
+| Arclight 弧光 | Energy burst | Overdrive: faster fire for 5 s, hits arc to two more enemies | Capacitor: +6% per consecutive hit on one target, up to +36% |
+| Bombard 震岳 | Siege | Creeping barrage: six shells walk along the aim line | Braced: 25% faster reload after standing still |
+| Bulwark 壁垒 | Tank | Fortress dome: absorbs outside fire for 6 s, then releases part of it as a blast | Crush: ramming at speed damages and throws enemy cars |
+
+AI drivers use the same skills. Effects were checked in software rendering only, not on a phone.
