@@ -56,3 +56,11 @@ Added a north bridge to every map with two approach ramps, a 9m central deck, pi
 ## Build 14
 
 Vehicle-specific acceleration, lower full-speed steering gain and mild corner speed reduction; no input smoothing delay. Camera uses exponential follow smoothing plus a capped 1.5m forward look, with teleport/spectator snapping. Incoming hostile rockets within 14m show a warning and audio cue; hit arcs identify attacker direction. AI uses loadout-specific firing distances, flank offsets, critical-health repair pickup routing and occasional independent missiles. Camera convergence is tested at 30/60/120fps; physical iPhone performance remains unverified.
+
+## Build 15
+
+Visual overhaul. `src/environment.ts` generates every arena surface at load time: nine tileable PBR layers (sand, cracked track, sandstone, concrete, asphalt, tread plate, snow, ice, frosted rock) baked on the CPU into albedo, height and normal maps, then height-blended per pixel in the ground shader with macro colour variation, baked contact shading around cover and drifting cloud shadows. Roads are part of that blend rather than separate ribbons. Outside the walls a generated landscape (stepped mesas, factory yard, snowy peaks) replaces the cone skyline; its slope is capped so it never hides the arena from the fixed camera. Cover footprints are unchanged but are now drawn as generated boulder clusters or stacked shipping containers. Instanced pebbles, wind-swayed grass, shrubs, snow-capped pines, sodium lamps with ground light pools, lit factory blocks and camera-following snow, dust and embers are all generated too.
+
+`src/render-pipeline.ts` adds image-based lighting from a generated sky per arena (golden-hour desert, moonlit foundry, cold morning snowfield), ACES tone mapping, a texel-snapped shadow frustum that follows the camera, bloom and a colour grade with vignette. Quality tiers: low renders directly with no shadows or post-processing; medium adds 1024 shadows, bloom and grading; high adds 2048 shadows and 4x MSAA.
+
+Gameplay geometry, collision, sight lines and AI are untouched. `npm test` also builds all three generated environments headlessly. Screenshots were checked in headless Chromium with software rendering only; frame rate on real phones and GPUs is unverified.
