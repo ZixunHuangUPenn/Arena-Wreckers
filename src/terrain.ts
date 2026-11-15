@@ -8,5 +8,7 @@ export function terrainHeight(x:number,z:number){
  const ripple=.12*Math.sin(x*.17)*Math.cos(z*.13);
  if(terrainStyle===1){const terrace=4*smooth((Math.abs(x)-17)/16);const rampCut=1-.7*Math.exp(-Math.pow((z+6)/13,2));return terrace*rampCut+mound(0,28,17,16,2.6)-mound(0,-17,15,15,1.1)+ripple*.3;}
  if(terrainStyle===2)return mound(-24,12,23,27,6.4)+mound(25,-19,23,25,5.8)+mound(9,32,22,17,3.2)-1.6*Math.exp(-Math.pow((x-5*Math.sin(z*.07))/7,2))+ripple;
+ // Caldera: four rim shoulders around a sunken ring where the lava crust has cracked open.
+ if(terrainStyle===3)return mound(-27,-24,22,22,5.4)+mound(28,25,23,24,6)+mound(-22,25,18,18,4.3)+mound(23,-25,19,19,4.7)+mound(0,0,9,9,2.2)-1.5*Math.exp(-Math.pow((Math.hypot(x,z)-17)/5,2))+ripple;
  return mound(-29,-25,23,23,5.5)+mound(31,25,24,25,6.3)+mound(-21,7,19,22,5.1)+mound(22,-18,20,21,4.8)+mound(0,31,20,15,3.3)-1.5*Math.exp(-Math.pow((x+5*Math.sin(z*.08))/8,2))+ripple;
 }
