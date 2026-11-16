@@ -410,6 +410,34 @@ dialog.welcome::backdrop{background:radial-gradient(circle at 50% 40%,#1a2530cc,
 /* Welcome difficulty. */
 dialog.welcome .welcome-diff{margin-bottom:4px}
 @media (prefers-reduced-motion:reduce){#shell.menu *,#shell.menu *:before,#shell.menu *:after{animation:none!important;transition:none!important}}
+/* ---------- language switch and detected device on the welcome screen */
+dialog.welcome .welcome-lang{width:max-content;margin:-8px -8px 12px auto;padding:2px}
+dialog.welcome .welcome-lang button{padding:5px 10px;font-size:11px}
+.welcome-options button{position:relative}
+.welcome-options button.selected{border-color:#f2b64d;background:#f2b64d22;box-shadow:inset 0 0 0 1px #f2b64d66}
+.welcome-options button em{position:absolute;top:-8px;right:8px;font-style:normal;font-size:9px;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:6px;background:#f2b64d;color:#1a1208}
+.welcome-start{display:block;width:100%;margin-top:16px;padding:12px;border:0;border-radius:11px;background:linear-gradient(180deg,#ffd88a,#f2b64d);color:#1a1208;font:inherit;font-size:15px;font-weight:900;letter-spacing:.06em;cursor:pointer;box-shadow:0 8px 22px #f2b64d40}
+.welcome-start:hover,.welcome-start:focus-visible{filter:brightness(1.08);outline:none}
+/* Shorter step connectors so the top bar fits at 800 logical px in both languages (English labels are wider). */
+#shell.menu .stepper li+li:before{width:18px;margin:0 4px}
+#shell.menu .stepper{min-width:0}
+/* Phones held sideways are only ~390px tall: keep the whole welcome card (and its Start button) on screen. */
+dialog.welcome{max-height:calc(100dvh - 12px);overflow-y:auto}
+@media (max-height:520px){
+ dialog.welcome{width:min(560px,92vw);padding:12px 18px;display:grid;grid-template-columns:1fr 1fr;column-gap:18px;align-items:start;text-align:left}
+ dialog.welcome .welcome-lang{grid-column:2;grid-row:1;margin:0 0 0 auto}
+ dialog.welcome .welcome-brand{grid-column:1;grid-row:1;align-items:flex-start;font-size:20px}
+ dialog.welcome .welcome-lead{grid-column:1;margin:4px 0 8px}
+ dialog.welcome .welcome-name{grid-column:1}
+ dialog.welcome .welcome-name input{padding:8px 10px}
+ dialog.welcome .welcome-ask{margin:8px 0 6px}
+ dialog.welcome .welcome-ask:first-of-type,dialog.welcome .welcome-diff{grid-column:1}
+ dialog.welcome .welcome-ask:nth-of-type(3){grid-column:2;grid-row:2}
+ dialog.welcome .welcome-options{grid-column:2;grid-row:3 / span 3}
+ dialog.welcome .welcome-options button{padding:9px 8px}
+ dialog.welcome .welcome-start{grid-column:2;margin-top:10px;padding:10px}
+ dialog.welcome .welcome-foot{grid-column:1 / -1;margin-top:8px;text-align:center}
+}
 
 /* Step 3 — mode detail panel. */
 #shell.menu .mode-detail{display:flex;flex-direction:column;gap:5px;padding:10px 11px;min-height:0;overflow:auto;scrollbar-width:none;animation:aw-in-right .45s both}
@@ -462,3 +490,4 @@ dialog.welcome .welcome-diff{margin-bottom:4px}
 #shell.menu .stepper button{gap:6px;padding:6px 5px}
 #shell.menu .topbar{min-width:0}
 #shell.menu .topbar>*{flex-shrink:1;min-width:0}
+#shell.menu .stepper{margin-right:10px}

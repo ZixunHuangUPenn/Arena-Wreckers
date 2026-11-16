@@ -7,7 +7,7 @@ const out=path.join(__dirname,'..','public','assets','maps');fs.mkdirSync(out,{r
  const p=await b.newPage({viewport:{width:960,height:540},deviceScaleFactor:1});p.on('pageerror',e=>console.log('pageerror',e.message));
  await p.goto((process.env.URL||'http://localhost:5173/')+'?quality=high');await p.waitForTimeout(6000);
  await p.evaluate(()=>{const n=document.querySelector('#driverName');if(n)n.value='Preview';document.querySelector('dialog button[value=web]')?.click();});
- const views=[[.78,118,.72],[.78,118,.72],[.78,118,.72],[.78,118,.72]];
+ const views=[[.78,225,.86],[.78,225,.86],[.78,225,.86],[.78,225,.86]];// yaw, distance, pitch: 200 m arenas
  for(let i=0;i<4;i++){await p.evaluate(([i,v])=>globalThis.__aerial(i,...v),[i,views[i]]);await p.waitForTimeout(9000);
   await p.locator('canvas').first().screenshot({path:path.join(out,`arena-${i}.jpg`),type:'jpeg',quality:82,timeout:300000});console.log('arena',i);}
  await b.close();})();
