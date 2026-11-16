@@ -37,7 +37,7 @@ Requires a supported Node.js release. Run `npm install`, `npm run dev`, `npm tes
 
 ## Build 10
 
-Five reconstructed textured glTF vehicles: Mantis (machine gun / Nitro), Punisher (shotgun / incendiary mine), Retro (pulse / Charge), Pummeler (rockets / Air Strike), Bigrig (howitzer / Kinetic Shock). Skills follow the reference archetypes; fixed weapon assignments are our gameplay choices. Models are independently rebuilt, not original Glu assets. Downloaded CC0 components and provenance: `public/assets/vendor/SOURCES.md`.
+Five vehicles, each with its own weapon, active skill and passive: Kestrel (machine gun / Cloak), Grapnel (shotgun / Grapple), Arclight (pulse / Overdrive), Bombard (rockets / Creeping Barrage), Bulwark (howitzer / Fortress Dome). Names, skills and models are our own; internal ids and asset filenames keep the earlier working names. Downloaded CC0 components and provenance: `public/assets/vendor/SOURCES.md`.
 
 Shots have maximum horizontal flight distances of 16/11/20/22/18m. Vehicle vision is 22/19/21/20/18m; cover blocks sight, enemy health bars and radar contacts. AI retains last seen locations briefly instead of tracking hidden enemies. The HUD uses a uniformly scaled coordinate frame and Safari safe-area insets; projected labels use that same frame. Deployment has one shared start action for both buttons.
 
@@ -118,6 +118,21 @@ Verification: `npm test` and `npm run build` pass; the three steps were screensh
   - `public/assets/maps/arena-N.jpg` — aerial renders of the real arena scene. After a terrain change, run `npx vite --port 5173` and then `node scripts/map-previews.cjs` to regenerate them (uses the dev-only `__aerial` hook on localhost).
   - `public/assets/modes/*.jpg` — staged scenes rendered from `lab.html?mode=<id>` (`src/lab.ts`).
 - **Vehicle cards**: studio spot, turntable floor ellipse, floor reflection, class code and armour/speed/firepower mini-bars. The info panel shows `skillDescription` (or `skillDesc`) from the vehicle spec when one is present.
+
+## Vehicle kits
+
+Each car has one active skill (Q or the skill button) and one passive. Rules and numbers live in `src/skills.ts`, the dome, cable and lightning meshes in `src/skill-effects.ts`. The vehicle page shows the full write-up beside the car.
+
+| Car | Role | Active | Passive |
+|---|---|---|---|
+| Kestrel 幽隼 | Stealth assassin | Cloak: unseen beyond 6 m for 5 s, firing breaks it and grants ×1.5 damage for 1.5 s | Backstab: +30% from behind |
+| Grapnel 铁钩 | Close-range control | Grapple: drags an enemy within 17 m to the bumper and slows it | Close armour: −25% damage from within 9 m |
+| Arclight 弧光 | Energy burst | Overdrive: faster fire for 5 s, hits arc to two more enemies | Capacitor: +6% per consecutive hit on one target, up to +36% |
+| Bombard 震岳 | Siege | Creeping barrage: six shells walk along the aim line | Braced: 25% faster reload after standing still |
+| Bulwark 壁垒 | Tank | Fortress dome: absorbs outside fire for 6 s, then releases part of it as a blast | Crush: ramming at speed damages and throws enemy cars |
+
+AI drivers use the same skills. Effects were checked in software rendering only, not on a phone.
+
 ## Build 18 · Terrain library
 
 **Every battle is a new map.** `src/terrain.ts` composes each arena from a seeded library of landforms and validates it before use: a gorge or river that splits the two halves and can only be crossed on two or three bridges, cliff-edged plateaus with drivable ramps, lakes, waterfalls that pour off a plateau into a plunge pool, hills, and walled ring arenas with four gates. Themes weight the library and pick the liquid: desert water, foundry molten-metal trenches and toxic pools, frozen lakes and icy rivers on Frostline, lava rivers, lava lakes and lavafalls in the Caldera. Spawns, capture zones, flags, pickups, barrels, the charge core and cover are placed on open ground for each layout, and a flood fill on a 1 m navigation grid (with car clearance) rejects any layout where they are not all connected. Starting a battle rolls a new seed; the toast names the landforms. `?seed=1234` replays one layout.
@@ -129,7 +144,7 @@ Verification: `npm test` and `npm run build` pass; the three steps were screensh
 `npm test` generates 20 layouts (4 themes x 5 seeds) and checks relief, open ground, objective placement and connectivity, drives every vehicle across every bridge both ways, crashes each into the railing and drives it out, and has the AI planner cross the gorge.
 
 
-## Build 19 · Bigger maps
+## Build 20 · Bigger maps
 
 **Four times the area.** Arenas are now 200 × 200 m (walls at ±100 m, `ARENA` in `src/terrain.ts`). The heightfield is baked every 0.625 m (321 × 321), which keeps the ground mesh at about 100k vertices. The camera bounds, minimap, AI route grid, boundary walls, outer landscape, scattered rocks and plants, foundry lamps and factory skyline all scale with `ARENA`.
 

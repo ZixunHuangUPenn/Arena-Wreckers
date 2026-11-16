@@ -28,10 +28,10 @@ export function loadDriver(name:string){
 export const paintColors=[0x1f8796,0xd2581f,0x5d3a96,0xd8d2c4,0x5a6440,0x2c2f35];
 export const paintNames=['极光蓝','熔岩橙','幻影紫','荒原白','军团绿','石墨黑'];
 export const weapons=[
- {name:'Mantis · 旋转机枪',tag:'短点射 / 压制',damage:1,reload:1,speed:34,range:16,spread:.055,pellets:1,gravity:0,color:0xffdc82,splash:0},
- {name:'Punisher · 爆裂霰弹炮',tag:'近距离 / 散射',damage:1,reload:1,speed:26,range:11,spread:.19,pellets:5,gravity:0,color:0xffa66d,splash:0},
- {name:'Retro · 脉冲炮',tag:'中距离 / 高弹速',damage:1,reload:1,speed:52,range:20,spread:.024,pellets:1,gravity:0,color:0x89deef,splash:0},
- {name:'Pummeler · 火箭巢',tag:'预判 / 爆炸',damage:1,reload:1,speed:18,range:22,spread:.04,pellets:1,gravity:0,color:0xff7841,splash:3.5},
- {name:'Bigrig · 重型榴弹',tag:'抛物线 / 区域压制',damage:1,reload:1,speed:15,range:18,spread:.04,pellets:1,gravity:7,color:0xffd07c,splash:4.5}
+ {name:'Kestrel · 旋转机枪',tag:'短点射 / 压制',damage:1,reload:1,speed:34,range:16,spread:.055,pellets:1,gravity:0,color:0xffdc82,splash:0},
+ {name:'Grapnel · 爆裂霰弹炮',tag:'近距离 / 散射',damage:1,reload:1,speed:26,range:11,spread:.19,pellets:5,gravity:0,color:0xffa66d,splash:0},
+ {name:'Arclight · 脉冲炮',tag:'中距离 / 高弹速',damage:1,reload:1,speed:52,range:20,spread:.024,pellets:1,gravity:0,color:0x89deef,splash:0},
+ {name:'Bombard · 火箭巢',tag:'预判 / 爆炸',damage:1,reload:1,speed:18,range:22,spread:.04,pellets:1,gravity:0,color:0xff7841,splash:3.5},
+ {name:'Bulwark · 重型榴弹',tag:'抛物线 / 区域压制',damage:1,reload:1,speed:15,range:18,spread:.04,pellets:1,gravity:7,color:0xffd07c,splash:4.5}
 ];
 export const arenas=[{name:'碎石峡谷',tag:'SANDSTONE / 01',description:'山脊、下切谷地和盘山土路，沿坡道登上高地绕行。',color:'#c4a070'},{name:'钢铁厂区',tag:'FOUNDRY / 02',description:'高台、下沉作业区、跨区管线与堆料场，坡道串联不同高度。',color:'#77aeb5'},{name:'霜冻边境',tag:'FROSTLINE / 03',description:'高耸雪坡、弯曲低地与冻土道路，借山坡切断敌方视线。',color:'#b5d0e5'},{name:'熔岩火山口',tag:'CALDERA / 04',description:'环形熔岩裂谷围住中央高地，四角山肩俯瞰火口，裂缝在夜色里发光。',color:'#e0703a'}];

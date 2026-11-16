@@ -49,7 +49,7 @@ export function createShowroom(renderer:THREE.WebGLRenderer){
  const camera=new THREE.PerspectiveCamera(30,1,.1,80);
  // Each step frames the car differently; `shift` moves it on screen (fraction of the viewport) to clear the side panel.
  const framings:Record<Framing,{pos:THREE.Vector3;look:THREE.Vector3;shift:[number,number]}>={
-  hero:{pos:new THREE.Vector3(6.6,2.7,7.4),look:new THREE.Vector3(0,.85,0),shift:[.12,.1]},
+  hero:{pos:new THREE.Vector3(8.7,3.55,9.7),look:new THREE.Vector3(0,.85,0),shift:[.02,.07]},
   tune:{pos:new THREE.Vector3(7.4,3.0,4.6),look:new THREE.Vector3(0,.85,0),shift:[-.2,.02]},
   deploy:{pos:new THREE.Vector3(5.2,3.6,8.4),look:new THREE.Vector3(0,.7,0),shift:[-.2,.06]},
   side:{pos:new THREE.Vector3(8.6,3.4,4.4),look:new THREE.Vector3(0,.8,0),shift:[0,0]},
