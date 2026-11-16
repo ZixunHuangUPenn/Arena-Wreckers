@@ -1,3 +1,4 @@
+import {tr} from './i18n';
 // Vehicle kits: one active skill and one passive per vehicle, the numbers behind them, the text shown in
 // the vehicle select menu, and the small pieces of geometry the skills need. No rendering in here.
 
@@ -13,26 +14,26 @@ const T=skillTuning;
 export type SkillKit={tag:string;accent:string;active:{name:string;summary:string;points:string[]};passive:{name:string;summary:string};tips:string;counter:string};
 /** Menu copy for each vehicle. Numbers are read from `skillTuning` so the text cannot drift from the rules. */
 export const skillKits:SkillKit[]=[
- {tag:'隐身刺客',accent:'#63e6d8',
-  active:{name:'光学迷彩',summary:`隐身 ${T.cloak.duration} 秒并提速 ${Math.round((T.cloak.speed-1)*100)}%，敌人只有贴到 ${T.cloak.revealRange} 米内才能发现你。`,points:['开火或发射导弹会立刻解除迷彩',`破隐后 ${T.cloak.ambushTime} 秒内伤害 ×${T.cloak.ambush}`,'迷彩期间敌方导弹丢失锁定']},
-  passive:{name:'背刺',summary:`从敌车后方命中时伤害 +${Math.round((T.cloak.rearBonus-1)*100)}%。`},
-  tips:'绕到敌人身后再开火，打完一轮就撤。',counter:'装甲最薄，怕范围伤害'},
- {tag:'近战控场',accent:'#ffab5c',
-  active:{name:'链钩',summary:`向瞄准方向射出钢索，钩住 ${T.hook.range} 米内的敌车并拖到车头前。`,points:[`命中造成 ${T.hook.damage} 伤害，拖拽中目标无法行驶`,`落地后目标减速 ${Math.round((1-T.hook.slow)*100)}%，持续 ${T.hook.slowTime} 秒`,`没钩中时冷却缩短为 ${T.hook.missCooldown} 秒`]},
-  passive:{name:'近身铁甲',summary:`受到 ${T.hook.armourRange} 米内敌人的伤害降低 ${Math.round((1-T.hook.armour)*100)}%。`},
-  tips:'把远程敌人钩到面前，用霰弹贴脸轰击。',counter:'怕被远程风筝'},
- {tag:'能量爆发',accent:'#c48bff',
-  active:{name:'超载电弧',summary:`脉冲炮超载 ${T.overdrive.duration} 秒，射速提高 ${Math.round((1/T.overdrive.reload-1)*100)}%。`,points:[`每次命中向 ${T.overdrive.chainRange} 米内另外 ${T.overdrive.chainTargets} 辆敌车弹射电弧`,`电弧造成本次伤害的 ${Math.round(T.overdrive.chain*100)}%`,'敌人扎堆时收益最高']},
-  passive:{name:'蓄能电容',summary:`连续命中同一目标，每发伤害 +${Math.round(T.overdrive.stack*100)}%，最多 +${Math.round(T.overdrive.stack*T.overdrive.maxStacks*100)}%；${T.overdrive.stackTime} 秒未命中清零。`},
-  tips:'盯住一个目标叠满电容，再开超载收割。',counter:'怕掩体和断线'},
- {tag:'远程攻城',accent:'#ffd166',
-  active:{name:'徐进弹幕',summary:`呼叫 ${T.barrage.shells} 发炮弹沿瞄准方向依次落下，覆盖约 ${Math.round((T.barrage.shells-1)*T.barrage.spacing)} 米长的地带。`,points:[`每发 ${T.barrage.damage} 伤害，半径 ${T.barrage.radius} 米`,'落点有黄色预警圈，可以越过掩体','适合封路、逼走占点的敌人']},
-  passive:{name:'驻锄架势',summary:`停稳 ${T.barrage.deployAfter} 秒后进入架设状态，装填时间缩短 ${Math.round((1-T.barrage.deployReload)*100)}%。`},
-  tips:'在高处停稳输出，用弹幕封住桥头坡道。',counter:'怕被近身和绕后'},
- {tag:'前排坦克',accent:'#6fb8ff',
-  active:{name:'堡垒力场',summary:`展开半径 ${T.dome.radius} 米的护罩 ${T.dome.duration} 秒，挡下外面射来的全部子弹和炮弹。`,points:[`护罩内队友受到的范围伤害降低 ${Math.round((1-T.dome.inside)*100)}%`,`最多吸收 ${T.dome.capacity} 伤害，吸满提前破裂`,`结束时把吸收的伤害炸回去，最高 ${T.dome.blastMax}`]},
-  passive:{name:'碾压',summary:`高速撞上敌车造成最高 ${T.dome.ramMax} 伤害并把它撞飞，自己几乎不减速。`},
-  tips:'顶在队友前面开护罩，结束前贴近敌人引爆。',counter:'怕被绕到护罩里面'}
+ {tag:tr('隐身刺客','Stealth assassin'),accent:'#63e6d8',
+  active:{name:tr('光学迷彩','Optical cloak'),summary:tr(`隐身 ${T.cloak.duration} 秒并提速 ${Math.round((T.cloak.speed-1)*100)}%，敌人只有贴到 ${T.cloak.revealRange} 米内才能发现你。`,`Invisible for ${T.cloak.duration} s and ${Math.round((T.cloak.speed-1)*100)}% faster; enemies only spot you within ${T.cloak.revealRange} m.`),points:[tr('开火或发射导弹会立刻解除迷彩','Firing a gun or missile drops the cloak at once'),tr(`破隐后 ${T.cloak.ambushTime} 秒内伤害 ×${T.cloak.ambush}`,`Damage ×${T.cloak.ambush} for ${T.cloak.ambushTime} s after breaking cloak`),tr('迷彩期间敌方导弹丢失锁定','Enemy missiles lose their lock while you are cloaked')]},
+  passive:{name:tr('背刺','Backstab'),summary:tr(`从敌车后方命中时伤害 +${Math.round((T.cloak.rearBonus-1)*100)}%。`,`+${Math.round((T.cloak.rearBonus-1)*100)}% damage when hitting an enemy from behind.`)},
+  tips:tr('绕到敌人身后再开火，打完一轮就撤。','Get behind the enemy before firing; unload one burst and leave.'),counter:tr('装甲最薄，怕范围伤害','Thinnest armour; weak to splash damage')},
+ {tag:tr('近战控场','Close control'),accent:'#ffab5c',
+  active:{name:tr('链钩','Grapple hook'),summary:tr(`向瞄准方向射出钢索，钩住 ${T.hook.range} 米内的敌车并拖到车头前。`,`Fires a cable along your aim, hooks an enemy within ${T.hook.range} m and drags it to your bumper.`),points:[tr(`命中造成 ${T.hook.damage} 伤害，拖拽中目标无法行驶`,`Deals ${T.hook.damage} damage; the target cannot drive while reeled in`),tr(`落地后目标减速 ${Math.round((1-T.hook.slow)*100)}%，持续 ${T.hook.slowTime} 秒`,`Afterwards the target is ${Math.round((1-T.hook.slow)*100)}% slower for ${T.hook.slowTime} s`),tr(`没钩中时冷却缩短为 ${T.hook.missCooldown} 秒`,`A miss shortens the cooldown to ${T.hook.missCooldown} s`)]},
+  passive:{name:tr('近身铁甲','Close armour'),summary:tr(`受到 ${T.hook.armourRange} 米内敌人的伤害降低 ${Math.round((1-T.hook.armour)*100)}%。`,`Takes ${Math.round((1-T.hook.armour)*100)}% less damage from enemies within ${T.hook.armourRange} m.`)},
+  tips:tr('把远程敌人钩到面前，用霰弹贴脸轰击。','Hook ranged enemies in and shotgun them point-blank.'),counter:tr('怕被远程风筝','Weak to being kited at range')},
+ {tag:tr('能量爆发','Energy burst'),accent:'#c48bff',
+  active:{name:tr('超载电弧','Overdrive arcs'),summary:tr(`脉冲炮超载 ${T.overdrive.duration} 秒，射速提高 ${Math.round((1/T.overdrive.reload-1)*100)}%。`,`Overdrives the pulse cannon for ${T.overdrive.duration} s: ${Math.round((1/T.overdrive.reload-1)*100)}% faster fire.`),points:[tr(`每次命中向 ${T.overdrive.chainRange} 米内另外 ${T.overdrive.chainTargets} 辆敌车弹射电弧`,`Each hit arcs to ${T.overdrive.chainTargets} more enemies within ${T.overdrive.chainRange} m`),tr(`电弧造成本次伤害的 ${Math.round(T.overdrive.chain*100)}%`,`Arcs deal ${Math.round(T.overdrive.chain*100)}% of the hit's damage`),tr('敌人扎堆时收益最高','Best when enemies bunch up')]},
+  passive:{name:tr('蓄能电容','Charge capacitors'),summary:tr(`连续命中同一目标，每发伤害 +${Math.round(T.overdrive.stack*100)}%，最多 +${Math.round(T.overdrive.stack*T.overdrive.maxStacks*100)}%；${T.overdrive.stackTime} 秒未命中清零。`,`Each hit on the same target adds +${Math.round(T.overdrive.stack*100)}% damage, up to +${Math.round(T.overdrive.stack*T.overdrive.maxStacks*100)}%; resets after ${T.overdrive.stackTime} s without a hit.`)},
+  tips:tr('盯住一个目标叠满电容，再开超载收割。','Stay on one target to fill the capacitors, then overdrive to clean up.'),counter:tr('怕掩体和断线','Weak to cover and broken line of fire')},
+ {tag:tr('远程攻城','Long-range siege'),accent:'#ffd166',
+  active:{name:tr('徐进弹幕','Creeping barrage'),summary:tr(`呼叫 ${T.barrage.shells} 发炮弹沿瞄准方向依次落下，覆盖约 ${Math.round((T.barrage.shells-1)*T.barrage.spacing)} 米长的地带。`,`Calls ${T.barrage.shells} shells that land one after another along your aim, covering about ${Math.round((T.barrage.shells-1)*T.barrage.spacing)} m.`),points:[tr(`每发 ${T.barrage.damage} 伤害，半径 ${T.barrage.radius} 米`,`${T.barrage.damage} damage per shell, ${T.barrage.radius} m radius`),tr('落点有黄色预警圈，可以越过掩体','Yellow warning circles mark the impacts; shells go over cover'),tr('适合封路、逼走占点的敌人','Good for blocking roads and clearing capture points')]},
+  passive:{name:tr('驻锄架势','Braced stance'),summary:tr(`停稳 ${T.barrage.deployAfter} 秒后进入架设状态，装填时间缩短 ${Math.round((1-T.barrage.deployReload)*100)}%。`,`After ${T.barrage.deployAfter} s standing still it braces, cutting reload time by ${Math.round((1-T.barrage.deployReload)*100)}%.`)},
+  tips:tr('在高处停稳输出，用弹幕封住桥头坡道。','Park on high ground and fire; lock down bridges and ramps with the barrage.'),counter:tr('怕被近身和绕后','Weak up close and from behind')},
+ {tag:tr('前排坦克','Front-line tank'),accent:'#6fb8ff',
+  active:{name:tr('堡垒力场','Fortress dome'),summary:tr(`展开半径 ${T.dome.radius} 米的护罩 ${T.dome.duration} 秒，挡下外面射来的全部子弹和炮弹。`,`Raises a ${T.dome.radius} m dome for ${T.dome.duration} s that stops every bullet and shell fired in from outside.`),points:[tr(`护罩内队友受到的范围伤害降低 ${Math.round((1-T.dome.inside)*100)}%`,`Allies inside take ${Math.round((1-T.dome.inside)*100)}% less splash damage`),tr(`最多吸收 ${T.dome.capacity} 伤害，吸满提前破裂`,`Absorbs up to ${T.dome.capacity} damage, then breaks early`),tr(`结束时把吸收的伤害炸回去，最高 ${T.dome.blastMax}`,`Blasts the absorbed damage back out when it ends, up to ${T.dome.blastMax}`)]},
+  passive:{name:tr('碾压','Ram'),summary:tr(`高速撞上敌车造成最高 ${T.dome.ramMax} 伤害并把它撞飞，自己几乎不减速。`,`Hitting an enemy at speed deals up to ${T.dome.ramMax} damage and knocks it away, with almost no slowdown.`)},
+  tips:tr('顶在队友前面开护罩，结束前贴近敌人引爆。','Lead your team with the dome up and get close to enemies before it pops.'),counter:tr('怕被绕到护罩里面','Weak to enemies who get inside the dome')}
 ];
 /** True when the attacker stands within 60° of the target's tail. Heading 0 faces −z. */
 export function isRearHit(ax:number,az:number,tx:number,tz:number,targetAngle:number){const dx=ax-tx,dz=az-tz,n=Math.hypot(dx,dz);if(n<1e-6)return false;return (dx*-Math.sin(targetAngle)+dz*-Math.cos(targetAngle))/n<-.5;}

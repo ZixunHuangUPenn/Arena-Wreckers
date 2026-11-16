@@ -1,3 +1,4 @@
+import {tr} from './i18n';
 // Terrain library: every arena is composed from a seeded set of landforms (gorges or rivers that only
 // bridges cross, cliff-edged plateaus with ramps, lakes, waterfalls, hills and walled rings), then
 // baked into one heightfield that driving, shooting, AI routing and the rendered ground all share.
@@ -48,10 +49,10 @@ const angleGap=(a:number,b:number)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a
 // ---------------------------------------------------------------- themes
 type Theme={name:string;relief:number;river:number;tributary:number;cut:number;gorgeFluid:Fluid|null;riverFluid:Fluid;lakeFluid:Fluid;fallFluid:Fluid;plateaus:[number,number];lakes:[number,number];ring:number;fall:number;plateauHeight:[number,number]};
 const themes:Theme[]=[
- {name:'沙岩荒漠',relief:1,river:.35,tributary:.8,cut:.75,gorgeFluid:null,riverFluid:'water',lakeFluid:'water',fallFluid:'water',plateaus:[1,2],lakes:[0,1],ring:.45,fall:.65,plateauHeight:[4,6]},
- {name:'铸造厂',relief:.35,river:.5,tributary:.65,cut:.9,gorgeFluid:'molten',riverFluid:'toxic',lakeFluid:'toxic',fallFluid:'molten',plateaus:[1,2],lakes:[0,1],ring:.7,fall:.45,plateauHeight:[3.2,4.5]},
- {name:'霜线雪原',relief:.9,river:.6,tributary:.8,cut:.6,gorgeFluid:null,riverFluid:'water',lakeFluid:'ice',fallFluid:'water',plateaus:[1,2],lakes:[1,2],ring:.3,fall:.7,plateauHeight:[4,6.5]},
- {name:'熔岩火山口',relief:1.1,river:.4,tributary:.75,cut:.6,gorgeFluid:'lava',riverFluid:'lava',lakeFluid:'lava',fallFluid:'lava',plateaus:[1,2],lakes:[1,2],ring:.45,fall:.7,plateauHeight:[4,6.5]},
+ {name:tr('沙岩荒漠','Sandstone desert'),relief:1,river:.35,tributary:.8,cut:.75,gorgeFluid:null,riverFluid:'water',lakeFluid:'water',fallFluid:'water',plateaus:[1,2],lakes:[0,1],ring:.45,fall:.65,plateauHeight:[4,6]},
+ {name:tr('铸造厂','Foundry'),relief:.35,river:.5,tributary:.65,cut:.9,gorgeFluid:'molten',riverFluid:'toxic',lakeFluid:'toxic',fallFluid:'molten',plateaus:[1,2],lakes:[0,1],ring:.7,fall:.45,plateauHeight:[3.2,4.5]},
+ {name:tr('霜线雪原','Frostline snowfield'),relief:.9,river:.6,tributary:.8,cut:.6,gorgeFluid:null,riverFluid:'water',lakeFluid:'ice',fallFluid:'water',plateaus:[1,2],lakes:[1,2],ring:.3,fall:.7,plateauHeight:[4,6.5]},
+ {name:tr('熔岩火山口','Lava caldera'),relief:1.1,river:.4,tributary:.75,cut:.6,gorgeFluid:'lava',riverFluid:'lava',lakeFluid:'lava',fallFluid:'lava',plateaus:[1,2],lakes:[1,2],ring:.45,fall:.7,plateauHeight:[4,6.5]},
 ];
 
 // ---------------------------------------------------------------- the active layout and its baked fields
@@ -281,8 +282,8 @@ function connected(L:Layout){buildNav(L);const start=L.spawns[0],seen=new Uint8A
  const targets=[...L.spawns.map(([x,z])=>({x,z})),...L.capture,...L.flags,...L.pickups,L.charge];if(!targets.every(reach))return false;
  // At least half the arena must stay drivable.
  return queue.length>NAV*NAV*.5;}
-const featureNames:Record<string,string>={tributary:'支流',cut:'下沉公路',overpass:'立交桥',spire:'石柱峭壁',gorge:'峡谷',river:'河谷',plateau:'台地悬崖',waterfall:'瀑布',lake:'湖泊',ice:'冰湖',lava:'熔岩湖',ring:'环形竞技场',hills:'丘陵'};
-function describe(L:Layout){const parts=L.features.filter((f,i)=>L.features.indexOf(f)===i).map(f=>featureNames[f]);if(L.bridges.length)parts.splice(1,0,`${L.bridges.length} 座桥`);return parts.join(' · ');}
+const featureNames:Record<string,string>={tributary:tr('支流','Creek'),cut:tr('下沉公路','Sunken road'),overpass:tr('立交桥','Overpass'),spire:tr('石柱峭壁','Rock spires'),gorge:tr('峡谷','Gorge'),river:tr('河谷','River valley'),plateau:tr('台地悬崖','Mesa cliffs'),waterfall:tr('瀑布','Waterfall'),lake:tr('湖泊','Lake'),ice:tr('冰湖','Frozen lake'),lava:tr('熔岩湖','Lava lake'),ring:tr('环形竞技场','Ring arena'),hills:tr('丘陵','Hills')};
+function describe(L:Layout){const parts=L.features.filter((f,i)=>L.features.indexOf(f)===i).map(f=>featureNames[f]);if(L.bridges.length)parts.splice(1,0,tr(`${L.bridges.length} 座桥`,`${L.bridges.length} bridge${L.bridges.length>1?'s':''}`));return parts.join(' · ');}
 /** Reserved spawn offsets used by respawning (kept here so tests can check the clearance). */
 export const spawnOffsets=SPAWN_OFFSETS;
 setTerrain(0);
