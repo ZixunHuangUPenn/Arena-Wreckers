@@ -112,7 +112,7 @@
 #shell.menu .upgrade-row span{font-size:8.5px;color:var(--muted);display:block}
 #shell.menu .upgrade-row button{grid-column:2;grid-row:1/3;align-self:center;background:#f2b64d1f;border:1px solid #f2b64d66;color:var(--amber-2);border-radius:14px;padding:5px 11px;font-size:9.5px;font-weight:800}
 #shell.menu .upgrade-row button:hover:not(:disabled){background:#f2b64d3d}
-#shell.menu #skins{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:4px 0 2px}
+#shell.menu #skins{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:4px 0 2px}
 #shell.menu #skins button{position:relative;height:30px;padding:0;border-radius:50%;aspect-ratio:1;width:30px;justify-self:center;border:2px solid #ffffff26;background:none}
 #shell.menu #skins button i{position:absolute;inset:3px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffffff88,transparent 45%),var(--paint)}
 #shell.menu #skins button span{display:none}
@@ -320,7 +320,7 @@ dialog.welcome::backdrop{background:radial-gradient(circle at 50% 40%,#1a2530cc,
 #shell.menu .buy-button:disabled{background:#ffffff14;color:var(--muted);box-shadow:none}
 #shell.menu .upgrade-card.maxed{border-color:#f2b64d55;background:linear-gradient(90deg,#3a2a1266,#ffffff04)}
 /* Paint swatches. */
-#shell.menu .page-armory #skins{grid-template-columns:repeat(3,1fr);gap:8px}
+#shell.menu .page-armory #skins{grid-template-columns:repeat(4,1fr);gap:8px}
 #shell.menu .page-armory #skins button{width:auto;height:auto;aspect-ratio:auto;border-radius:10px;padding:8px 6px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--line);background:#ffffff06;transition:transform .18s,border-color .18s}
 #shell.menu .page-armory #skins button i{position:relative;inset:auto;width:44px;height:44px;border-radius:50%;box-shadow:inset 0 -6px 10px #0006,0 6px 12px #0008}
 #shell.menu .page-armory #skins button span{display:block;font-size:10px;color:var(--ink);font-weight:700}
