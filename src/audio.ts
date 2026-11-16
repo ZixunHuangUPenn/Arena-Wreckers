@@ -27,6 +27,8 @@ const ARENA_AMBIENCE=[
  {wind:.1,windHz:900,bed:.004,texture:'none'},
  {wind:.03,windHz:300,bed:.014,texture:'lava'},
 ] as const;
+export type MenuSound='car'|'weapon'|'mode'|'arena'|'paint'|'upgrade'|'claim'|'deny'|'next'|'back'|'tab'|'pick'|'reroll'|'deploy';
+export const MENU_MODES=['ctf','charge','horde','team','capture','elimination'] as const;
 const ENEMY_VOICES=4,HEARING=34;
 
 type EngineVoice={osc:OscillatorNode[];filter:BiquadFilterNode;chug:OscillatorNode;chugDepth:GainNode;gain:GainNode;pan:StereoPannerNode|null;loadout:number};
@@ -156,6 +158,54 @@ export class GameAudio{
  /** End-of-match sting: rising major arpeggio for a win, falling minor for a loss, two level notes for a draw. */
  fanfare(result:number){if(!this.ready())return;try{const t=this.ctx!.currentTime,notes=result>0?[523,659,784,1047,1319]:result<0?[392,311,262,196]:[440,440],step=result>0?.13:.24;notes.forEach((f,i)=>{const last=i===notes.length-1,length=last?.9:step*1.6;this.tone({at:t+i*step,type:'triangle',from:f,level:.07,length,send:.3,attack:.01});this.tone({at:t+i*step,type:'sawtooth',from:f/2,level:.022,length,send:.2,attack:.02});});}catch{}}
  blip(freq:number,length:number){if(!this.ready())return;try{this.tone({type:'sawtooth',from:freq,to:Math.max(40,freq*.4),level:.035,length});}catch{}}
+
+ /** Short engine blip for the garage: the same idle/range/brightness as the car's battle engine, revved once. */
+ private rev(loadout:number,level:number){const ctx=this.ctx!,t=ctx.currentTime,p=ENGINE_PROFILES[loadout]??ENGINE_PROFILES[1],idle=p.idle*1.6,peak=(p.idle+p.range)*1.6,f=ctx.createBiquadFilter(),g=ctx.createGain();
+  f.type='lowpass';f.Q.value=1.4;f.frequency.setValueAtTime(260*p.bright,t);f.frequency.linearRampToValueAtTime(1500*p.bright,t+.16);f.frequency.exponentialRampToValueAtTime(240*p.bright,t+.55);
+  g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(level,t+.03);g.gain.setValueAtTime(level,t+.2);g.gain.exponentialRampToValueAtTime(.0005,t+.6);
+  ([['sawtooth',1,1],['square',.5,.4]] as const).forEach(([type,ratio,mix])=>{const o=ctx.createOscillator(),m=ctx.createGain();o.type=type;m.gain.value=mix;o.frequency.setValueAtTime(idle*ratio,t);o.frequency.linearRampToValueAtTime(peak*ratio,t+.16);o.frequency.exponentialRampToValueAtTime(idle*1.15*ratio,t+.55);o.connect(m).connect(f);o.start(t);o.stop(t+.64);});
+  f.connect(g);this.out(g,0,this.sfx,.08);}
+ /** Menu sounds. Every choice has its own voice so the player can hear what was picked:
+  *  car 0-4      engine rev in that car's register plus a hint of its skill (cloak shimmer, chain, arc, shell, dome hum)
+  *  weapon 0-4   the weapon being readied (belt feed, pump, capacitor charge, breech, mortar tube); variant 0-2 retunes it (standard, light, heavy)
+  *  mode         one motif per mode: ctf, charge, horde, team, capture, elimination
+  *  arena 0-3    desert gust, foundry anvil, frost chime, caldera rumble
+  *  paint/upgrade/claim/deny/next/back/tab/pick/reroll/deploy are the supporting interface sounds. */
+ menu(kind:MenuSound,index=0,variant=0){if(!this.ready())return;try{const t=this.ctx!.currentTime,T=(o:Parameters<GameAudio['tone']>[0])=>this.tone(o),N=(o:Parameters<GameAudio['noiseBurst']>[0])=>this.noiseBurst(o);
+  if(kind==='car'){this.rev(index,.07);const at=t+.22;
+   if(index===0){T({at,type:'sine',from:2400,to:900,level:.03,length:.4,send:.3});N({at,type:'highpass',freq:6000,sweepTo:1500,level:.02,length:.35,attack:.05,send:.3});}
+   else if(index===1){for(let i=0;i<4;i++)T({at:at+i*.045,type:'square',from:1000-i*90,to:640,level:.022,length:.03});T({at:at+.2,type:'triangle',from:2300,to:1750,level:.03,length:.3,send:.2});}
+   else if(index===2){for(let i=0;i<3;i++)N({at:at+i*.07,type:'highpass',freq:3000+i*700,level:.035,length:.05});T({at,type:'sawtooth',from:1900,to:320,level:.022,length:.22});}
+   else if(index===3){T({at,type:'sine',from:110,to:42,level:.14,length:.35});T({at:at+.16,type:'square',from:310,to:150,level:.035,length:.1});N({at:at+.16,type:'lowpass',freq:500,level:.07,length:.22,decay:true,send:.15});}
+   else{T({at,type:'sine',from:70,to:210,level:.1,length:.5,attack:.08,send:.3});T({at,type:'triangle',from:420,to:840,level:.03,length:.45,attack:.1,send:.3});}}
+  else if(kind==='weapon'){const k=[1,1.3,.78][variant]??1;
+   if(index===0){for(let i=0;i<4;i++)N({at:t+i*.04,type:'bandpass',freq:3200*k,q:3,level:.04,length:.025});T({at:t+.2,type:'square',from:520*k,to:260*k,level:.04,length:.07});N({at:t+.2,type:'bandpass',freq:1800*k,q:1.2,level:.06,length:.06});}
+   else if(index===1){N({type:'bandpass',freq:900*k,sweepTo:480*k,q:1.5,level:.08,length:.09});T({type:'square',from:190*k,to:120*k,level:.03,length:.07});N({at:t+.15,type:'bandpass',freq:1300*k,sweepTo:760*k,q:1.5,level:.09,length:.1});T({at:t+.15,type:'square',from:260*k,to:150*k,level:.035,length:.08});}
+   else if(index===2){T({type:'sine',from:300*k,to:2400*k,level:.04,length:.36,attack:.05});T({type:'sawtooth',from:150*k,to:1200*k,level:.012,length:.36,attack:.05});T({at:t+.36,type:'sine',from:3200*k,to:3000*k,level:.035,length:.25,send:.3});}
+   else if(index===3){T({type:'sine',from:140*k,to:58*k,level:.14,length:.28});N({type:'lowpass',freq:420*k,level:.08,length:.25,decay:true,send:.15});T({at:t+.12,type:'triangle',from:700*k,to:520*k,level:.035,length:.3,send:.25});}
+   else{T({type:'sine',from:520*k,to:170*k,level:.08,length:.2});N({at:t+.18,type:'lowpass',freq:320*k,level:.1,length:.3,decay:true,send:.2});T({at:t+.18,type:'sine',from:95*k,to:45*k,level:.1,length:.3});T({at:t+.22,type:'triangle',from:1500*k,to:1380*k,level:.016,length:.4,send:.3});}}
+  else if(kind==='mode'){const note=(at:number,f:number,length=.16,level=.04,type:OscillatorType='triangle')=>T({at:t+at,type,from:f,level,length,send:.2});
+   if(index===0){note(0,392);note(.11,587);note(.22,784,.32);}// ctf: a rising bugle call
+   else if(index===1){T({type:'sawtooth',from:110,to:880,level:.03,length:.32,attack:.04});T({at:t+.3,type:'square',from:880,to:870,level:.022,length:.14});N({at:t+.3,type:'highpass',freq:4200,level:.03,length:.1});}// charge: the core powering up
+   else if(index===2){note(0,147,.28,.06,'sawtooth');note(.2,139,.28,.06,'sawtooth');note(.4,110,.5,.07,'sawtooth');T({at:t+.4,type:'sine',from:55,to:40,level:.12,length:.5});}// horde: a low threat
+   else if(index===3){for(let i=0;i<3;i++)N({at:t+i*.07,type:'bandpass',freq:1900,q:.8,level:.05,length:.05});for(const f of [294,370,440])note(.21,f,.35,.03);}// team: snare flam into a chord
+   else if(index===4){note(0,523,.14,.04,'sine');note(.12,659,.14,.04,'sine');note(.24,784,.3,.045,'sine');}// capture: one ping per point
+   else{T({type:'sine',from:160,to:45,level:.16,length:.4});N({type:'lowpass',freq:600,level:.08,length:.3,decay:true,send:.3});T({at:t+.05,type:'triangle',from:1760,to:1740,level:.025,length:.6,send:.4});}}// elimination: one final hit
+  else if(kind==='arena'){
+   if(index===0){N({type:'bandpass',freq:420,sweepTo:1100,q:.8,level:.07,length:.6,attack:.2,send:.3});T({type:'triangle',from:220,to:233,level:.025,length:.5,attack:.1});}
+   else if(index===1){T({type:'square',from:480,to:455,level:.03,length:.12});T({type:'triangle',from:662,to:650,level:.04,length:.7,send:.5});T({type:'sine',from:1325,to:1310,level:.022,length:.5,send:.5});N({type:'highpass',freq:2600,level:.05,length:.05});}
+   else if(index===2){[1976,2637,3136].forEach((f,i)=>T({at:t+i*.06,type:'sine',from:f,level:.028,length:.5,send:.45}));N({type:'highpass',freq:7000,level:.015,length:.3,attack:.08,send:.3});}
+   else{T({type:'sine',from:62,to:38,level:.16,length:.7,attack:.04});N({type:'lowpass',freq:300,sweepTo:110,level:.09,length:.7,decay:true,send:.4});[.2,.32,.4].forEach((d,i)=>T({at:t+d,type:'sine',from:110+i*45,to:260+i*60,level:.02,length:.07}));}}
+  else if(kind==='paint'){N({type:'bandpass',freq:3600+index*450,sweepTo:5200+index*450,q:.9,level:.05,length:.28,attack:.03});T({at:t+.24,type:'sine',from:880+index*110,level:.025,length:.14});}
+  else if(kind==='upgrade'){for(let i=0;i<5;i++)N({at:t+i*.05,type:'bandpass',freq:2400+i*260,q:4,level:.045,length:.025});[523,659,784,1047][index]&&T({at:t+.28,type:'triangle',from:[523,659,784,1047][index],level:.045,length:.3,send:.25});T({at:t+.28,type:'sine',from:1568,level:.02,length:.3,send:.25});}
+  else if(kind==='claim'){[988,1319,1568,1976].forEach((f,i)=>T({at:t+i*.06,type:'triangle',from:f,level:.035,length:.16,send:.2}));}
+  else if(kind==='deny'){T({type:'square',from:150,to:140,level:.04,length:.1});T({at:t+.13,type:'square',from:118,to:105,level:.04,length:.16});}
+  else if(kind==='next'){T({type:'triangle',from:520,to:780,level:.035,length:.09});N({type:'highpass',freq:5000,level:.012,length:.03});}
+  else if(kind==='back'){T({type:'triangle',from:620,to:400,level:.03,length:.09});}
+  else if(kind==='tab'){T({type:'sine',from:1250+index*140,level:.025,length:.05});N({type:'bandpass',freq:2600,q:3,level:.02,length:.02});}
+  else if(kind==='reroll'){for(let i=0;i<4;i++)N({at:t+i*.05,type:'bandpass',freq:700+i*380,q:2.5,level:.05,length:.035});T({at:t+.22,type:'triangle',from:660,to:990,level:.03,length:.12});}
+  else if(kind==='deploy'){T({type:'sawtooth',from:98,to:392,level:.04,length:.4,attack:.03});N({type:'highpass',freq:2500,sweepTo:6000,level:.035,length:.4,attack:.2,send:.2});[392,587,784].forEach(f=>T({at:t+.38,type:'triangle',from:f,level:.03,length:.4,send:.3}));}
+  else T({type:'sine',from:900+index*120,level:.025,length:.045});}catch{}}
 
  private buildAmbience(){const ctx=this.ctx!;
   const windLength=ctx.sampleRate*3,buffer=ctx.createBuffer(2,windLength,ctx.sampleRate);for(let c=0;c<2;c++){const ch=buffer.getChannelData(c);let b=0;for(let i=0;i<windLength;i++){b=(b+.02*(Math.random()*2-1))/1.02;ch[i]=b*3.5;}
