@@ -166,3 +166,11 @@ AI drivers use the same skills. Effects were checked in software rendering only,
   - Background is baked from the terrain generator (`src/minimap.ts`).
   - Fog of war covers everything outside the team's shared vision; high ground sees further.
   - Shows objectives, visible enemies, and the player as a heading arrow.
+
+## Build 22 — Match finale
+- A decided match no longer cuts straight to the result screen. For about three seconds the battle keeps running:
+  - time dips into slow motion and the camera pushes in;
+  - a verdict banner (胜利 / 战败 / 平局) drops with the mode and score, and a short win or loss sting plays;
+  - the winning side keeps driving and can fire and use skills, but nobody takes damage; allied AI spins donuts and fireworks go off over the winners;
+  - on a defeat the camera moves to the nearest surviving winner and the player's car rolls to a stop.
+- Then the result screen appears as before. This applies to every mode. Slow-motion pacing has not been checked on a real device.

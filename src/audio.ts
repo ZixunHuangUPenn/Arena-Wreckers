@@ -153,6 +153,8 @@ export class GameAudio{
  whistle(x:number,z:number,seconds:number){if(!this.ready())return;const {distance,pan}=this.where(x,z);if(distance>55)return;try{this.tone({type:'sine',from:2100,to:700,level:.025*falloff(distance),length:Math.max(.3,seconds),pan,attack:.2,send:.2});}catch{}}
  pickup(heal:boolean){if(!this.ready())return;try{const t=this.ctx!.currentTime;(heal?[660,880,1100]:[440,660,990]).forEach((f,i)=>this.tone({at:t+i*.07,type:'triangle',from:f,level:.04,length:.18}));}catch{}}
  /** Short UI/score blip (kill confirm etc). */
+ /** End-of-match sting: rising major arpeggio for a win, falling minor for a loss, two level notes for a draw. */
+ fanfare(result:number){if(!this.ready())return;try{const t=this.ctx!.currentTime,notes=result>0?[523,659,784,1047,1319]:result<0?[392,311,262,196]:[440,440],step=result>0?.13:.24;notes.forEach((f,i)=>{const last=i===notes.length-1,length=last?.9:step*1.6;this.tone({at:t+i*step,type:'triangle',from:f,level:.07,length,send:.3,attack:.01});this.tone({at:t+i*step,type:'sawtooth',from:f/2,level:.022,length,send:.2,attack:.02});});}catch{}}
  blip(freq:number,length:number){if(!this.ready())return;try{this.tone({type:'sawtooth',from:freq,to:Math.max(40,freq*.4),level:.035,length});}catch{}}
 
  private buildAmbience(){const ctx=this.ctx!;
