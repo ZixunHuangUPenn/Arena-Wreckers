@@ -30,7 +30,7 @@ const looks:Record<Fluid,Look>={
 function fluidMaterial(fluid:Fluid){const look=looks[fluid],hot=fluid==='lava'||fluid==='molten',ice=fluid==='ice';
  const material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:look.rough,metalness:0,transparent:!hot&&!ice,opacity:1,envMapIntensity:ice?.8:1.4});
  if(ice){const l=layer('ice');material.map=l.albedo;material.normalMap=l.normal;material.normalScale.set(.5,.5);}else material.normalMap=rippleTexture();
- if(hot){const crust=layer('lavacrust');material.map=crust.albedo;material.emissive=new THREE.Color(look.glowColor);material.emissiveMap=crust.albedo;}
+ if(hot){const crust=layer(fluid==='molten'?'slag':'lavacrust');material.map=crust.albedo;material.emissive=new THREE.Color(look.glowColor);material.emissiveMap=crust.albedo;}
  const uniforms={uTime:environmentUniforms.uTime,uShallow:{value:new THREE.Color(look.shallow)},uDeep:{value:new THREE.Color(look.deep)},uOpacity:{value:look.opacity},uFlow:{value:look.flow},uGlow:{value:look.glow},uGlowColor:{value:new THREE.Color(look.glowColor)}};
  material.customProgramCacheKey=()=>'arena-fluid-'+fluid;
  material.onBeforeCompile=shader=>{Object.assign(shader.uniforms,uniforms);
