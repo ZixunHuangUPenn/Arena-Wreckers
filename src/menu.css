@@ -513,3 +513,10 @@ dialog.welcome:not([open]){display:none!important}
 #shell.menu .page-arena .ready-keys{display:none}
 #shell.menu .page-arena .ready-card{padding:5px 8px}
 #shell.menu .page-arena .arena-info{gap:4px}
+#shell.menu .local-board{display:grid;gap:2px;margin-bottom:10px;font-size:11px;color:#cfd8dc}
+#shell.menu .local-board .lb-row{display:grid;grid-template-columns:28px minmax(0,1.6fr) repeat(4,minmax(0,1fr));gap:6px;align-items:center;padding:6px 10px;border-radius:6px;background:#ffffff06;border:1px solid var(--line)}
+#shell.menu .local-board .lb-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#shell.menu .local-board .lb-row span:nth-child(n+3){text-align:right;font-variant-numeric:tabular-nums}
+#shell.menu .local-board .lb-head{background:none;border-color:transparent;font-size:9px;letter-spacing:.08em;color:#8fa3ab;text-transform:uppercase}
+#shell.menu .local-board .lb-row.me{border-color:#e2b11f88;background:#e2b11f14;color:#fff}
+#shell.menu .local-board .lb-empty{margin:0;font-size:11px;color:#8fa3ab}

@@ -44,3 +44,11 @@ export const weapons=[
  {name:tr('Bulwark · 重型榴弹','Bulwark · Heavy mortar'),tag:tr('抛物线 / 区域压制','Arcing / Area denial'),damage:1,reload:1,speed:15,range:18,spread:.04,pellets:1,gravity:7,color:0xffd07c,splash:4.5}
 ];
 export const arenas=[{name:tr('碎石峡谷','Sandstone Gorge'),tag:'SANDSTONE / 01',description:tr('山脊、下切谷地和盘山土路，沿坡道登上高地绕行。','Ridges, a sunken gorge and winding dirt roads. Take the ramps to the high ground to flank.'),color:'#c4a070'},{name:tr('钢铁厂区','Iron Foundry'),tag:'FOUNDRY / 02',description:tr('高台、下沉作业区、跨区管线与堆料场，坡道串联不同高度。','Raised decks, a sunken work pit, pipelines and stockyards, linked by ramps between levels.'),color:'#77aeb5'},{name:tr('霜冻边境','Frostline Border'),tag:'FROSTLINE / 03',description:tr('高耸雪坡、弯曲低地与冻土道路，借山坡切断敌方视线。','Tall snow slopes, winding lowlands and frozen roads. Use the hills to break line of sight.'),color:'#b5d0e5'},{name:tr('熔岩火山口','Lava Caldera'),tag:'CALDERA / 04',description:tr('环形熔岩裂谷围住中央高地，四角山肩俯瞰火口，裂缝在夜色里发光。','A ring of lava rifts circles the central plateau; four shoulders overlook the crater, glowing in the night.'),color:'#e0703a'}];
+
+export type DriverRecord={name:string;wins:number;games:number;kills:number;bestWave:number;best:number};
+/** Every driver saved on this device, best first. Read straight from localStorage so it needs no network or sign-in. */
+export function localDrivers(source:Pick<Storage,'getItem'|'key'|'length'>|undefined=storage):DriverRecord[]{
+ const rows:DriverRecord[]=[];if(!source)return rows;
+ try{for(let i=0;i<source.length;i++){const key=source.key(i);if(!key?.startsWith('arena-driver:'))continue;const name=key.slice(13);if(!name.trim())continue;const d=new ProfileStore({getItem:k=>source.getItem(k),setItem(){}},key).data;rows.push({name:name.slice(0,24),wins:d.wins,games:d.games,kills:d.kills,bestWave:d.bestWave,best:Number(source.getItem('arena-best:'+name))||0});}}catch{}
+ return rows.sort((a,b)=>b.wins-a.wins||b.best-a.best||b.games-a.games||a.name.localeCompare(b.name));
+}
