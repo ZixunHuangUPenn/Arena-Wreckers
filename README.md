@@ -155,3 +155,14 @@ AI drivers use the same skills. Effects were checked in software rendering only,
 **Cover.** Barrels went from six to one linked pair, and the small crate yards are gone. Cover is now 12 to 14 large rock outcrops or container walls, 6 to 12 m long, with taller boulders. There are eight pickups instead of four.
 
 **Generation cost.** Bounding-box early-outs in the shape functions, a band test before channel distance, one bake per successful attempt and a rasterised navigation mask bring generation to about 0.2 to 0.9 s per layout in Node. On a phone, expect roughly two to three times that when a battle starts. This has not been measured on a real device.
+
+## Build 20 — HUD, minimap and split mode/arena pages
+- **Mode and arena are separate steps** (选车 → 改装 → 模式 → 战场):
+  - The mode page has a detail panel showing the rules, team size, win condition and respawn rules.
+  - The arena page rolls the next battle's terrain in advance and draws it top-down (relief shading, contours, cliffs, water/lava, bridges, team bases), with feature chips and the seed. "换一个地形" re-rolls it.
+- **Match start** shows only the arena name as an animated title card. The terrain features live on the arena page.
+- **HUD**: player card, score panel and one shared glass button style for menu / pause / sound, with SVG icons.
+- **Minimap**:
+  - Background is baked from the terrain generator (`src/minimap.ts`).
+  - Fog of war covers everything outside the team's shared vision; high ground sees further.
+  - Shows objectives, visible enemies, and the player as a heading arrow.
