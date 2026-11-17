@@ -159,8 +159,8 @@ export class GameAudio{
  blip(freq:number,length:number){if(!this.ready())return;try{this.tone({type:'sawtooth',from:freq,to:Math.max(40,freq*.4),level:.035,length});}catch{}}
 
  /** Menu sounds, deliberately few: one per kind of choice, the same for every car, weapon and colour.
-  *  car      a bolt being racked against armour plate over a faint engine murmur
-  *  weapon   a dry charging-handle click-clack
+  *  car      a soft engine rolling in, quiet
+  *  weapon   a soft "ka-chak" of a round being chambered, quiet
   *  paint    a spray-can hiss and nothing else
   *  upgrade  a ratchet into a short chime
   *  mode     a two-note radio call
@@ -168,12 +168,14 @@ export class GameAudio{
   *  reroll   a quick rising rattle of four ticks, like terrain plates reshuffling
   *  deny     a low double buzz (not enough parts); pick is the plain click for every other button. */
  menu(kind:MenuSound){if(!this.ready())return;try{const ctx=this.ctx!,t=ctx.currentTime,T=(o:Parameters<GameAudio['tone']>[0])=>this.tone(o),N=(o:Parameters<GameAudio['noiseBurst']>[0])=>this.noiseBurst(o);
-  if(kind==='car'){N({type:'bandpass',freq:1800,q:1.5,level:.06,length:.05});T({type:'square',from:420,to:210,level:.03,length:.06});
-   N({at:t+.11,type:'bandpass',freq:1100,q:1.2,level:.09,length:.09});T({at:t+.11,type:'square',from:300,to:140,level:.04,length:.08});T({at:t+.11,type:'triangle',from:1450,to:1380,level:.014,length:.2,send:.15});
-   // Faint engine murmur underneath: a low filtered saw that lifts a little and settles.
-   const o=ctx.createOscillator(),f=ctx.createBiquadFilter(),g=ctx.createGain();o.type='sawtooth';o.frequency.setValueAtTime(62,t);o.frequency.linearRampToValueAtTime(84,t+.2);o.frequency.exponentialRampToValueAtTime(60,t+.6);f.type='lowpass';f.frequency.value=380;
-   g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.03,t+.06);g.gain.exponentialRampToValueAtTime(.0005,t+.65);o.connect(f).connect(g);this.out(g,0,this.sfx);o.start(t);o.stop(t+.7);}
-  else if(kind==='weapon'){N({type:'bandpass',freq:2600,q:2,level:.05,length:.03});N({at:t+.08,type:'bandpass',freq:1500,q:1.4,level:.09,length:.07});T({at:t+.08,type:'square',from:520,to:260,level:.035,length:.07});N({at:t+.2,type:'highpass',freq:3200,level:.04,length:.03});T({at:t+.2,type:'triangle',from:2100,to:1900,level:.012,length:.12});}
+  if(kind==='car'){// A car rolling in: a soft, low engine that swells, lifts a little and settles. No metal, no hard edges.
+   const f=ctx.createBiquadFilter(),g=ctx.createGain(),lfo=ctx.createOscillator(),depth=ctx.createGain(),body=ctx.createGain();f.type='lowpass';f.Q.value=.7;f.frequency.setValueAtTime(220,t);f.frequency.linearRampToValueAtTime(520,t+.4);f.frequency.exponentialRampToValueAtTime(200,t+1.1);
+   ([['triangle',1,1],['sawtooth',.5,.35],['triangle',1.006,.6]] as const).forEach(([type,ratio,mix])=>{const o=ctx.createOscillator(),m=ctx.createGain();o.type=type;m.gain.value=mix;o.frequency.setValueAtTime(52*ratio,t);o.frequency.linearRampToValueAtTime(88*ratio,t+.4);o.frequency.exponentialRampToValueAtTime(60*ratio,t+1.1);o.connect(m).connect(f);o.start(t);o.stop(t+1.25);});
+   lfo.type='sine';lfo.frequency.setValueAtTime(13,t);lfo.frequency.linearRampToValueAtTime(22,t+.4);lfo.frequency.linearRampToValueAtTime(15,t+1.1);depth.gain.value=.18;body.gain.value=.8;lfo.connect(depth).connect(body.gain);lfo.start(t);lfo.stop(t+1.25);
+   g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.032,t+.16);g.gain.setValueAtTime(.032,t+.45);g.gain.exponentialRampToValueAtTime(.0005,t+1.2);f.connect(body).connect(g);this.out(g,0,this.sfx,.1);
+   N({type:'lowpass',freq:240,level:.012,length:.9,attack:.2});}
+  else if(kind==='weapon'){// A round being chambered, "ka-chak": two soft filtered clicks with a small low thud, no tones.
+   N({type:'bandpass',freq:1500,q:1,level:.028,length:.035,attack:.004});N({at:t+.1,type:'bandpass',freq:950,q:1,level:.04,length:.06,attack:.004});N({at:t+.1,type:'lowpass',freq:320,level:.03,length:.09,decay:true});T({at:t+.1,type:'sine',from:170,to:110,level:.018,length:.07,attack:.006});}
   else if(kind==='paint'){N({type:'bandpass',freq:4200,sweepTo:5600,q:.9,level:.05,length:.34,attack:.04});N({type:'highpass',freq:7500,level:.018,length:.3,attack:.05});}
   else if(kind==='upgrade'){for(let i=0;i<5;i++)N({at:t+i*.05,type:'bandpass',freq:2400+i*260,q:4,level:.045,length:.025});T({at:t+.28,type:'triangle',from:784,level:.045,length:.3,send:.25});T({at:t+.28,type:'sine',from:1568,level:.02,length:.3,send:.25});}
   else if(kind==='mode'){T({type:'triangle',from:440,level:.04,length:.12,send:.2});T({at:t+.11,type:'triangle',from:660,level:.04,length:.24,send:.2});}

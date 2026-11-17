@@ -25,6 +25,7 @@ Requires a supported Node.js release. Run `npm install`, `npm run dev`, `npm tes
 ## Source
 
 - `src/main.ts`: game loop, scene, controls, AI, effects and menu bindings.
+- `src/ai-nav.ts`: AI driving. A* routes on the 1 m navigation grid that keep clear of rims and deck edges, path following, stuck and spin detection with a random break-away, search points when no enemy is known, and circling combat positions.
 - `src/physics.ts`: oriented collision boxes and swept projectile tests.
 - `src/match.ts`: match scoring and end conditions.
 - `src/handling.ts`: vehicle parameters and screen/world angle conversion.
