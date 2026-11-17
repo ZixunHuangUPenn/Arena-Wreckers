@@ -38,12 +38,23 @@
 /* Minimap: framed like the menu cards, with a corner label. */
 #gameUI #radar{top:150px;right:18px;width:138px;height:138px;border-radius:10px;border:1px solid #ffffff2e;box-shadow:0 0 0 3px #080c10cc,0 10px 22px #000a;background:#0b0e12}
 .portrait #gameUI #radar{top:176px;width:120px;height:120px}
-.portrait #gameUI #leave,.portrait #gameUI #pause,.portrait #gameUI #mute{top:110px}
+.portrait #gameUI #hudButtons{top:110px}
 /* Pause screen as a glass card. */
 #pauseLayer{background:radial-gradient(ellipse at center,#0b1015cc,#05070af2)!important;backdrop-filter:blur(4px)}
 #pauseLayer strong{font-size:28px!important;letter-spacing:.12em;color:var(--amber-2,#ffd88a)!important}
 #pauseLayer p{color:#94a3ab}
-#pauseLayer #resume{margin-top:14px;padding:10px 26px;border-radius:999px;border:0;background:linear-gradient(180deg,#ffd88a,#f2b64d);color:#1a1206;font-weight:800;box-shadow:0 8px 22px #f2b64d55}
+/* In-match corner buttons: sound toggle + pause, side by side top-left. */
+#gameUI #hudButtons{position:absolute;top:100px;left:18px;display:flex;gap:8px;z-index:2}
+#gameUI #hudButtons #mute,#gameUI #hudButtons #pause{position:static;top:auto;left:auto}
+/* Pause dialog: quit the match, or cancel and keep playing. */
+#pauseLayer .pause-card{display:flex;flex-direction:column;align-items:center;gap:6px;width:min(340px,calc(100vw - 40px));padding:26px 24px 22px;border-radius:18px;background:#10171ee6;border:1px solid #ffffff1f;box-shadow:0 22px 50px #000b;text-align:center}
+#pauseLayer .pause-card p{margin:2px 0 14px;font-size:13px;line-height:1.5}
+#pauseLayer .pause-actions{display:flex;gap:10px;width:100%}
+#pauseLayer .pause-actions button{flex:1;min-height:46px;padding:10px 14px;border-radius:999px;font-size:15px;font-weight:800;letter-spacing:.04em;cursor:pointer;transition:transform .12s,border-color .15s}
+#pauseLayer .pause-actions button:active{transform:scale(.96)}
+#pauseLayer #leave{position:static;border:1px solid #ff8a6a77;background:#3a1b16cc;color:#ffb39e;box-shadow:none}
+#pauseLayer #leave:hover{border-color:#ff8a6a}
+#pauseLayer #resume{margin:0;border:0;background:linear-gradient(180deg,#ffd88a,#f2b64d);color:#1a1206;box-shadow:0 8px 22px #f2b64d55}
 /* Match-start title card. */
 .arena-banner{position:absolute;left:50%;top:150px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 34px 12px;pointer-events:none;z-index:6;animation:aw-banner 3.4s cubic-bezier(.2,.8,.2,1) both}
 .arena-banner small{font-size:9px;letter-spacing:.42em;color:#f2b64d;font-weight:700}
@@ -91,3 +102,8 @@
 #gameUI #deathRecap .row.env i em{background:linear-gradient(90deg,#ffd88a,#f2b64d)}
 #gameUI #deathRecap p{margin:9px 0 0;font-size:9.5px;color:var(--muted)}
 .portrait #gameUI #deathRecap{top:240px}
+/* Narrow portrait: keep the skill strip and centre banners below the sound/pause row. */
+#app.portrait #gameUI #skillStatus{top:150px}
+#app.portrait #gameUI #notice{top:188px}
+#app.portrait #gameUI #objectiveTimer{top:210px}
+#app.portrait #gameUI #bossHUD{top:236px}

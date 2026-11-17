@@ -201,7 +201,7 @@ export const skillMods:[string,string][]=[
 export const variantUnlocked=(variant:number,weaponLevel:number,mastery:number)=>variant===0||variant===1&&weaponLevel>=5||variant===2&&mastery>=6;
 
 // ---------------------------------------------------------------- challenges
-export type StarGoal={kind:'win'|'deaths'|'kills'|'time'|'damage'|'wave'|'flags'|'captures';value:number};
+export type StarGoal={kind:'win'|'deaths'|'kills'|'time'|'damage'|'score'|'wave'|'flags'|'captures';value:number};
 export type Challenge={id:number;name:string;mode:string;arena:number;difficulty:'easy'|'normal'|'hard';car?:number;level:number;goals:[StarGoal,StarGoal,StarGoal]};
 const C=(name:string,mode:string,arena:number,difficulty:'easy'|'normal'|'hard',level:number,g2:StarGoal,g3:StarGoal,car?:number)=>({name,mode,arena,difficulty,level,car,goals:[{kind:'win',value:1},g2,g3] as [StarGoal,StarGoal,StarGoal]});
 export const challenges:Challenge[]=[
@@ -211,25 +211,28 @@ export const challenges:Challenge[]=[
  C(tr('守住据点','Hold the points'),'capture',0,'normal',1,{kind:'captures',value:3},{kind:'deaths',value:1}),
  C(tr('三波防线','Three waves'),'horde',0,'easy',1,{kind:'wave',value:6},{kind:'deaths',value:0}),
  C(tr('厂区单挑','Foundry duel'),'elimination',1,'normal',2,{kind:'kills',value:2},{kind:'deaths',value:0}),
- C(tr('钢铁车阵','Steel convoy'),'team',1,'normal',2,{kind:'damage',value:2500},{kind:'time',value:140}),
+ C(tr('钢铁车阵','Steel convoy'),'team',1,'normal',2,{kind:'score',value:1000},{kind:'time',value:140}),
  C(tr('冰原夺旗','Frozen flag'),'ctf',2,'normal',3,{kind:'flags',value:1},{kind:'flags',value:2}),
  C(tr('雪坡伏击','Snow ambush'),'team',2,'normal',3,{kind:'kills',value:8},{kind:'deaths',value:1}),
- C(tr('弧光过载','Arc overload'),'team',1,'normal',4,{kind:'damage',value:3000},{kind:'kills',value:8},2),
+ C(tr('弧光过载','Arc overload'),'team',1,'normal',4,{kind:'score',value:1200},{kind:'kills',value:8},2),
  C(tr('火山口能核','Caldera core'),'charge',3,'normal',4,{kind:'kills',value:4},{kind:'deaths',value:1}),
  C(tr('熔岩生存','Lava survival'),'horde',3,'normal',4,{kind:'wave',value:6},{kind:'deaths',value:0}),
  C(tr('据点拉锯','Point tug-of-war'),'capture',2,'hard',5,{kind:'captures',value:4},{kind:'deaths',value:2}),
  C(tr('孤胆夺旗','Lone flag'),'ctf',1,'hard',6,{kind:'flags',value:2},{kind:'deaths',value:1}),
- C(tr('徐进弹幕','Creeping fire'),'team',2,'normal',8,{kind:'damage',value:4000},{kind:'kills',value:8},3),
+ C(tr('徐进弹幕','Creeping fire'),'team',2,'normal',8,{kind:'score',value:1600},{kind:'kills',value:8},3),
  C(tr('困难生存','Hard survival'),'horde',1,'hard',8,{kind:'wave',value:6},{kind:'deaths',value:0}),
- C(tr('铁壁推进','Iron wall'),'capture',3,'hard',12,{kind:'captures',value:4},{kind:'damage',value:3000},4),
+ C(tr('铁壁推进','Iron wall'),'capture',3,'hard',12,{kind:'captures',value:4},{kind:'score',value:1200},4),
  C(tr('火山决斗','Caldera duel'),'elimination',3,'hard',10,{kind:'kills',value:3},{kind:'deaths',value:0}),
  C(tr('快攻歼灭','Blitz'),'team',3,'hard',12,{kind:'time',value:150},{kind:'deaths',value:1}),
  C(tr('终极考验','Final exam'),'horde',2,'hard',15,{kind:'wave',value:6},{kind:'deaths',value:0})
 ].map((c,id)=>({...c,id}));
-export function goalText(g:StarGoal){switch(g.kind){case 'win':return tr('获胜','Win');case 'deaths':return g.value?tr(`获胜且阵亡不超过 ${g.value} 次`,`Win with at most ${g.value} deaths`):tr('获胜且不阵亡','Win without dying');case 'kills':return tr(`击毁 ${g.value} 辆敌车`,`Wreck ${g.value} cars`);case 'time':return tr(`${Math.floor(g.value/60)}:${String(g.value%60).padStart(2,'0')} 内获胜`,`Win within ${Math.floor(g.value/60)}:${String(g.value%60).padStart(2,'0')}`);case 'damage':return tr(`造成 ${g.value} 伤害`,`Deal ${g.value} damage`);case 'wave':return tr(`撑过全部 ${g.value} 波`,`Survive all ${g.value} waves`);case 'flags':return tr(`亲自交付 ${g.value} 面旗`,`Deliver ${g.value} flags yourself`);case 'captures':return tr(`亲自占领 ${g.value} 个据点`,`Capture ${g.value} points yourself`);}}
-export function goalMet(g:StarGoal,m:MatchSummary){switch(g.kind){case 'win':return m.win;case 'deaths':return m.win&&m.deaths<=g.value;case 'kills':return m.kills>=g.value;case 'time':return m.win&&m.seconds<=g.value;case 'damage':return m.damage>=g.value;case 'wave':return m.mode==='horde'&&m.win;case 'flags':return m.flags>=g.value;case 'captures':return m.captures>=g.value;}}
+export function goalText(g:StarGoal){switch(g.kind){case 'win':return tr('获胜','Win');case 'deaths':return g.value?tr(`获胜且阵亡不超过 ${g.value} 次`,`Win with at most ${g.value} deaths`):tr('获胜且不阵亡','Win without dying');case 'kills':return tr(`击毁 ${g.value} 辆敌车`,`Wreck ${g.value} cars`);case 'time':return tr(`${Math.floor(g.value/60)}:${String(g.value%60).padStart(2,'0')} 内获胜`,`Win within ${Math.floor(g.value/60)}:${String(g.value%60).padStart(2,'0')}`);case 'damage':return tr(`造成 ${g.value} 伤害`,`Deal ${g.value} damage`);case 'score':return tr(`获得 ${g.value} 积分`,`Earn ${g.value} points`);case 'wave':return tr(`撑过全部 ${g.value} 波`,`Survive all ${g.value} waves`);case 'flags':return tr(`亲自交付 ${g.value} 面旗`,`Deliver ${g.value} flags yourself`);case 'captures':return tr(`亲自占领 ${g.value} 个据点`,`Capture ${g.value} points yourself`);}}
+export function goalMet(g:StarGoal,m:MatchSummary){switch(g.kind){case 'win':return m.win;case 'deaths':return m.win&&m.deaths<=g.value;case 'kills':return m.kills>=g.value;case 'time':return m.win&&m.seconds<=g.value;case 'damage':return m.damage>=g.value;case 'score':return m.score>=g.value;case 'wave':return m.mode==='horde'&&m.win;case 'flags':return m.flags>=g.value;case 'captures':return m.captures>=g.value;}}
 /** Stars earned: a star needs a win, the other goals each add one. */
-export function starsFor(c:Challenge,m:MatchSummary){if(!m.win)return 0;return 1+(goalMet(c.goals[1],m)?1:0)+(goalMet(c.goals[2],m)?1:0);}
+/** Which of the three goals a run met, as bits (1 = win, 2 = goal 2, 4 = goal 3); nothing counts without a win. */
+export function starGoalsFor(c:Challenge,m:MatchSummary){if(!m.win)return 0;return 1|(goalMet(c.goals[1],m)?2:0)|(goalMet(c.goals[2],m)?4:0);}
+export const starCount=(mask:number)=>(mask&1)+(mask>>1&1)+(mask>>2&1);
+export function starsFor(c:Challenge,m:MatchSummary){return starCount(starGoalsFor(c,m));}
 export const STAR_REWARD=100;
 export const starMilestones:{stars:number;reward:{credits?:number;parts?:Partial<Parts>;title?:string}}[]=[
  {stars:10,reward:{parts:{core:1}}},{stars:20,reward:{parts:{core:2}}},{stars:30,reward:{parts:{core:2},credits:1000}},{stars:40,reward:{parts:{core:3}}},{stars:50,reward:{parts:{core:3},credits:2000}},{stars:60,reward:{parts:{core:5},title:'star'}}];
