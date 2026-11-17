@@ -54,21 +54,12 @@
 #shell.menu .road-step.unlock b{color:var(--amber-2)}
 #shell.menu .career-stats{grid-template-columns:repeat(5,minmax(0,1fr))}
 #shell.menu .season-card{padding:10px 12px;border-radius:10px;background:linear-gradient(120deg,#16303acc,#0b1015cc);border:1px solid #7fd6e333}
-#shell.menu .season-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
-#shell.menu .season-head small{font-size:8px;letter-spacing:.2em;color:var(--cyan)}
-#shell.menu .season-head strong{display:block;font-size:15px}
-#shell.menu .season-head span{font-size:9px;color:var(--muted)}
 #shell.menu .season-tier b{font-size:26px;color:var(--cyan)}#shell.menu .season-tier small{font-size:10px;color:var(--muted)}
 #shell.menu .season-track{display:grid;grid-template-columns:repeat(30,1fr);gap:2px;margin:8px 0 5px}
 #shell.menu .season-track i{height:6px;border-radius:2px;background:#ffffff14}
 #shell.menu .season-track i.big{height:10px;margin-top:-2px;background:#ffffff22}
 #shell.menu .season-track i.on{background:linear-gradient(180deg,var(--cyan),#3f9fd8)}
 #shell.menu .season-next{font-size:9.5px;margin:0 0 2px;color:#cfd8dc}
-#shell.menu .task-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-#app.portrait #shell.menu .task-board,#app.portrait #shell.menu .level-road{grid-template-columns:1fr 1fr}
-#app.portrait #shell.menu .task-board{grid-template-columns:1fr}
-#shell.menu .task-group h4{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:11px;margin:0 0 5px;color:var(--ink)}
-#shell.menu .task-group h4 small{font-size:8px;color:var(--muted);font-weight:500;text-align:right}
 #shell.menu .task{display:flex;gap:10px;align-items:center;padding:8px 10px;margin-bottom:5px;border-radius:9px;background:#ffffff06;border:1px solid var(--line)}
 #shell.menu .task.done:not(.claimed){border-color:#f2b64d77;background:linear-gradient(120deg,#3a2a1266,#ffffff04)}
 #shell.menu .task.claimed{opacity:.55}
@@ -112,10 +103,6 @@
 
 /* Challenges page. */
 #shell.menu .page-challenges{display:flex;flex-direction:column;gap:8px}
-#shell.menu .star-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--line)}
-#shell.menu .star-head small{font-size:8px;letter-spacing:.2em;color:var(--amber)}
-#shell.menu .star-head strong{display:block;font-size:22px}
-#shell.menu .star-head span{font-size:9px;color:var(--muted)}
 #shell.menu .star-total b{font-size:26px;color:var(--amber-2)}#shell.menu .star-total small{font-size:10px;color:var(--muted)}
 #shell.menu .star-road{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
 #shell.menu .star-road>span{display:flex;align-items:center;gap:4px;padding:3px 8px 3px 6px;border-radius:12px;background:#ffffff06;border:1px solid var(--line);font-size:9px}
@@ -152,3 +139,113 @@
 #shell.menu .levelup-card{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:10px;border:1px solid #f2b64d88;background:linear-gradient(140deg,#4a3410cc,#140f08ee);font-size:9.5px;color:#f1e6cf;animation:aw-levelup .6s cubic-bezier(.2,.8,.2,1) both}
 #shell.menu .levelup-card b{font-size:10px;color:var(--amber-2);letter-spacing:.04em;white-space:nowrap}
 @keyframes aw-levelup{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+
+/* Module pages: a tab strip on top, one framed page per module (account, tasks, achievements, mastery, season,
+   warehouse, challenges, leaderboard). Red dots sit on the module that has a reward waiting. */
+#shell.menu #pages>.hub-tabs{position:absolute;top:10px;left:0;right:0;z-index:3;display:flex;gap:4px;padding:4px;border-radius:14px;background:linear-gradient(180deg,#141c23f5,#0b1015f5);border:1px solid var(--line);overflow-x:auto;scrollbar-width:none;box-shadow:0 6px 18px #0006}
+#shell.menu #pages>.hub-tabs::-webkit-scrollbar{display:none}
+#shell.menu #pages>.hub-tabs[hidden]{display:none}
+#shell.menu .hub-tabs button{position:relative;flex:1 0 auto;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 13px;border-radius:10px;border:1px solid transparent;background:none;color:#aab6bb;font-size:10.5px;font-weight:700;white-space:nowrap;transition:color .15s,background .15s}
+#shell.menu .hub-tabs button svg{flex:none;color:var(--amber)}
+#shell.menu .hub-tabs button:hover{color:var(--ink);background:#ffffff0a}
+#shell.menu .hub-tabs button.selected{color:#1a1209;background:linear-gradient(180deg,var(--amber-2),var(--amber));box-shadow:inset 0 1px #ffffff55}
+#shell.menu .hub-tabs button.selected svg{color:#1a1209}
+#shell.menu .hub-tabs em{position:absolute;top:1px;right:2px;font-style:normal;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:#ff5a45;color:#fff;font-size:9px;font-weight:800;line-height:15px;text-align:center;box-sizing:border-box;box-shadow:0 0 0 2px #0b1015}
+#shell.menu .hub-tabs em[hidden]{display:none}
+#shell.menu #pages>.page-hub{inset:60px 0 10px}
+#shell.menu .hub-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding-bottom:9px;border-bottom:1px solid var(--line)}
+#shell.menu .hub-head small{font-size:8px;letter-spacing:.2em;color:var(--amber)}
+#shell.menu .hub-head strong{display:block;font-size:22px;line-height:1.2}
+#shell.menu .hub-head span{font-size:9px;color:var(--muted)}
+#shell.menu .hub-side{flex:none;display:flex;align-items:center;gap:12px}
+#shell.menu .hub-side .wallet-line{display:flex;align-items:center;gap:5px;font-size:18px;font-weight:900}
+#shell.menu .hub-side .wallet-line small{font-size:9px;font-weight:500;letter-spacing:0;color:var(--muted)}
+#shell.menu .hub-count b{font-size:26px;color:var(--amber-2)}#shell.menu .hub-count small{font-size:10px;letter-spacing:0;color:var(--muted)}
+#shell.menu .claim-all{width:auto;padding:6px 13px;border-radius:14px;font-size:10px;font-weight:900;border:0;color:#1a1208;background:linear-gradient(180deg,var(--amber-2),var(--amber));box-shadow:0 0 14px #f2b64d44}
+#shell.menu .hub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px;align-items:start}
+#shell.menu .hub-card{padding:10px 12px 12px;border-radius:11px;background:linear-gradient(160deg,#ffffff0b,#ffffff03);border:1px solid var(--line)}
+#shell.menu .hub-card-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+#shell.menu .hub-card-head b{font-size:11px;color:#dfe5e7;letter-spacing:.04em;white-space:nowrap}
+#shell.menu .hub-card-head small{font-size:8.5px;color:var(--muted);text-align:right;margin:0}
+#shell.menu .hub-card-head.solo{margin:14px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+#shell.menu .hub-card .level-road{grid-template-columns:1fr 1fr;margin:0}
+#shell.menu .hub-card .career-stats{grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px;margin:0}
+#shell.menu .hub-card .career-stat{padding:7px 9px}#shell.menu .hub-card .career-stat strong{font-size:16px}
+#shell.menu .hub-card .local-board{margin:0}
+#shell.menu .hub-card .wins-list{margin:8px 0 0}
+#shell.menu .page-hub .lb-empty.locked-note{margin:14px 0;padding:14px;border-radius:10px;border:1px dashed #f2b64d55;text-align:center;font-size:11px}
+#app.portrait #shell.menu .hub-grid{grid-template-columns:1fr}
+#app.portrait #shell.menu .hub-tabs button{padding:7px 11px}
+#app.portrait #shell.menu .hub-head strong{font-size:19px}
+
+/* Tasks: daily and weekly each in their own framed box with their own colour. */
+#shell.menu .task-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;margin-top:10px}
+#app.portrait #shell.menu .task-board{grid-template-columns:1fr}
+#shell.menu .task-box{--tone:#7fd6e3;--tone-bg:#7fd6e31c;--tone-line:#7fd6e370;border:1.5px solid var(--tone-line);border-radius:13px;overflow:hidden;background:linear-gradient(180deg,#10202699,#0b1015cc)}
+#shell.menu .task-box.weekly{--tone:#bfa2ff;--tone-bg:#bfa2ff1c;--tone-line:#bfa2ff70;background:linear-gradient(180deg,#1a162a99,#0b1015cc)}
+#shell.menu .task-box header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:1px 10px;align-items:center;padding:9px 12px;background:var(--tone-bg);border-bottom:1px solid var(--tone-line)}
+#shell.menu .task-box-icon{grid-row:1/3;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--tone);color:#0b1015}
+#shell.menu .task-box-title small{display:block;font-size:7.5px;letter-spacing:.22em;color:var(--tone)}
+#shell.menu .task-box-title strong{font-size:14px}
+#shell.menu .task-box-count{grid-row:1/3;grid-column:3;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+#shell.menu .task-box-count b{font-size:20px;color:var(--tone);margin-right:1px}
+#shell.menu .task-box-timer{grid-column:2;font-style:normal;font-size:8.5px;color:#b9c4c8}
+#shell.menu .task-list{padding:9px 10px 3px}
+#shell.menu .task-box footer{padding:0 12px 9px;font-size:8.5px;color:var(--muted)}
+#shell.menu .task-box footer .on{color:var(--tone)}
+#shell.menu .task-box .task .progress-track i{background:linear-gradient(90deg,var(--tone-line),var(--tone))}
+#shell.menu .task-box .task.done:not(.claimed) .progress-track i{background:linear-gradient(90deg,#c68a2e,var(--amber-2))}
+
+/* Achievements. */
+#shell.menu .page-hub .milestones{margin-top:10px}
+#app.portrait #shell.menu .page-hub .milestones{grid-template-columns:1fr}
+#shell.menu .milestone.ready{background:linear-gradient(120deg,#3a2a1266,#ffffff04)}
+#shell.menu .milestone.complete{opacity:.6}
+#shell.menu .page-hub .mastery-board{margin-top:10px}
+
+/* Season page. */
+#shell.menu .season-tier b{font-size:26px;color:var(--cyan)}#shell.menu .season-tier small{font-size:10px;letter-spacing:0;color:var(--muted)}
+#shell.menu .page-hub .season-card{margin-top:10px}
+#shell.menu .season-cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px}
+#shell.menu .season-cell{display:flex;gap:8px;align-items:center;padding:6px 9px;border-radius:9px;background:#ffffff06;border:1px solid var(--line);font-size:9px;line-height:1.3;color:#cfd8dc}
+#shell.menu .season-cell b{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#ffffff10;font-size:9.5px;color:var(--muted)}
+#shell.menu .season-cell i{margin-left:auto;font-style:normal;color:var(--cyan)}
+#shell.menu .season-cell.big{border-color:#f2b64d55}#shell.menu .season-cell.big b{background:#f2b64d2e;color:var(--amber-2)}
+#shell.menu .season-cell.on{background:#7fd6e312;border-color:#7fd6e344}#shell.menu .season-cell.on b{background:var(--cyan);color:#06222a}
+#shell.menu .season-cell.next{border-color:var(--cyan);box-shadow:0 0 0 1px #7fd6e355}
+
+/* Warehouse. */
+#shell.menu .stock-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+#shell.menu .stock-card{--part:#d9dde2;padding:11px 12px;border-radius:12px;border:1px solid var(--line);border-top:2px solid var(--part);background:linear-gradient(170deg,#ffffff0d,#ffffff03)}
+#shell.menu .stock-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+#shell.menu .stock-gem{flex:none;width:30px;height:30px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);background:linear-gradient(150deg,#ffffffcc,var(--part) 45%,#00000066 130%)}
+#shell.menu .stock-top small{display:block;font-size:7.5px;letter-spacing:.2em;color:var(--part)}
+#shell.menu .stock-top strong{font-size:12px}
+#shell.menu .stock-count{margin-left:auto;font-size:28px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+#shell.menu .stock-card .progress-track{height:4px;border-radius:2px;background:#ffffff12;overflow:hidden}
+#shell.menu .stock-card .progress-track i{display:block;height:100%;background:var(--part)}
+#shell.menu .stock-need{display:block;margin:4px 0 6px;font-size:8.5px;color:var(--muted)}
+#shell.menu .stock-card p{display:flex;gap:7px;margin:4px 0 0;font-size:8.5px;line-height:1.4;color:#cfd8dc}
+#shell.menu .stock-card p em{flex:none;font-style:normal;font-weight:800;color:var(--part)}
+#shell.menu .demand-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+#shell.menu .demand-row{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 10px;border-radius:10px;background:#ffffff06;border:1px solid var(--line)}
+#shell.menu .demand-row img{width:56px;height:42px;object-fit:contain}
+#shell.menu .demand-row.ready{border-color:#f2b64d77;background:linear-gradient(120deg,#3a2a1266,#ffffff04)}
+#shell.menu .demand-row.locked{opacity:.55}#shell.menu .demand-row.locked img{filter:grayscale(1)}
+#shell.menu .demand-main{display:flex;flex-direction:column;gap:4px;min-width:0}
+#shell.menu .demand-main strong{font-size:10.5px}
+#shell.menu .demand-main strong small{margin-left:6px;font-size:8.5px;font-weight:500;color:var(--muted)}
+#shell.menu .demand-main .pips.ten i{height:4px;border-radius:2px;background:#ffffff14}
+#shell.menu .demand-main .pips.ten i.on{background:linear-gradient(90deg,#c68a2e,var(--amber-2))}
+#shell.menu .demand-main .cost-line{align-items:center;margin:0}
+#shell.menu .demand-main .cost-line small{font-size:8.5px;color:var(--muted)}
+#shell.menu .demand-tag.max{font-size:9.5px;font-weight:800;color:var(--amber-2)}
+#app.portrait #shell.menu .stock-grid,#app.portrait #shell.menu .demand-list{grid-template-columns:1fr}
+#shell.menu #pages>.page-hub{padding:12px 16px 14px}
+#shell.menu .hub-head{padding-bottom:7px}
+#shell.menu .hub-head strong{display:inline-block;font-size:18px;margin-right:10px}
+#shell.menu .hub-head small{display:block}
+#shell.menu .hub-tabs em{position:static;margin-left:-1px;box-shadow:none}
+#shell.menu .hub-count,#shell.menu .star-total,#shell.menu .season-tier{white-space:nowrap}
+#shell.menu .page-hub .milestone{margin:0}
+#shell.menu .hub-count b,#shell.menu .season-tier b,#shell.menu .star-total b{display:inline}
