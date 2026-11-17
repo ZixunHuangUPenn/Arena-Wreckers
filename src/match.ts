@@ -26,3 +26,12 @@ export class Match {
  if(this.time===0&&this.mode==='horde'){this.finish(1);return;}if(this.time===0&&!this.ended){const value=this.mode==='elimination'?[0,1].map(t=>cars.filter(c=>c.alive&&c.team===t).reduce((s,c)=>s+1000+c.hp,0)):this.scores;this.finish(value[0]===value[1]?-1:value[0]>value[1]?0:1);}
  }
 }
+
+/**
+ * Death recap: merges damage entries by key and returns them largest first with whole-number percentages that add up
+ * to exactly 100 (largest remainders get the spare points). At most `limit` rows; the rest are folded into the last row's key 'other'.
+ */
+export function damageShares(entries:{key:string;amount:number}[],limit=4){const sums:{key:string;amount:number}[]=[];for(const e of entries){if(!(e.amount>0))continue;const hit=sums.find(s=>s.key===e.key);if(hit)hit.amount+=e.amount;else sums.push({key:e.key,amount:e.amount});}
+ sums.sort((a,b)=>b.amount-a.amount);if(sums.length>limit){const rest=sums.splice(limit-1);sums.push({key:'other',amount:rest.reduce((a,r)=>a+r.amount,0)});}
+ const total=sums.reduce((a,s)=>a+s.amount,0);if(!total)return [];const rows=sums.map(s=>({key:s.key,amount:s.amount,share:Math.floor(s.amount/total*100),rest:s.amount/total*100%1}));let spare=100-rows.reduce((a,r)=>a+r.share,0);
+ for(const r of [...rows].sort((a,b)=>b.rest-a.rest)){if(spare<=0)break;r.share++;spare--;}return rows.map(r=>({key:r.key,amount:r.amount,share:r.share}));}

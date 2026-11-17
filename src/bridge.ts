@@ -14,7 +14,9 @@ export function driveHeight(x:number,z:number,previousY:number){const deck=deckH
 /** Swept projectile test against the deck slabs; returns the fraction of the step, or null. */
 export function bridgeHit(x:number,y:number,z:number,dx:number,dy:number,dz:number){for(let i=0;i<=16;i++){const t=i/16,h=deckHeight(x+dx*t,z+dz*t);if(h!==null&&y+dy*t>=h-.6&&y+dy*t<=h+.12)return t;}return null;}
 /** True where a car body at height y cannot be (with `fall`, lethal gorges, rivers and lakes are open so the car can drop in): off the deck over a gorge, cliffs, deep water, lava, or a drop (an overpass edge). */
-export function groundBlocked(x:number,z:number,y:number,fall=false){const deck=deckHeight(x,z);if(deck!==null&&y>deck-1.4)return false;if(fall&&terrainHazard(x,z))return false;// a driver may go over the edge into a gorge, river or lake
+/** True just outside the railed part of a deck, for a body at deck height: the railings are solid, so a car cannot leave a bridge sideways. */
+export function railBlocked(x:number,z:number,y:number){for(const b of mapLayout().bridges){const c=Math.cos(b.angle),s=Math.sin(b.angle),dx=x-b.x,dz=z-b.z,u=dx*c+dz*s,v=Math.abs(-dx*s+dz*c);if(Math.abs(u)<=b.span+.6&&v>b.halfWidth&&v<b.halfWidth+2.2&&Math.abs(y-bridgeDeck(b,u))<1.4)return true;}return false;}
+export function groundBlocked(x:number,z:number,y:number,fall=false){const deck=deckHeight(x,z);if(deck!==null&&y>deck-1.4)return false;if(fall&&railBlocked(x,z,y))return true;if(fall&&terrainHazard(x,z))return false;// a driver may go over the edge into a gorge, river or lake
  return terrainBlocked(x,z)||y-terrainHeight(x,z)>2.8;}
 /**
  * Checks a car footprint against impassable ground. Returns the push-out direction (unit x/z) or null.
