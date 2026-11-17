@@ -1,7 +1,7 @@
 // Bridges and built landforms (ring arena walls): their drivable decks, projectile hits, collision
 // against impassable ground, and the meshes. Decks are generated from the active terrain layout.
 import * as THREE from 'three';
-import {terrainHeight,terrainBlocked,terrainHazard,terrainPit,blockedness,mapLayout,bridgeLocal,ringWalls,type Bridge} from './terrain';
+import {terrainHeight,terrainBlocked,terrainHazard,blockedness,mapLayout,bridgeLocal,ringWalls,type Bridge} from './terrain';
 import type {Rect} from './physics';
 import {surfaceMaterial} from './environment';
 
@@ -16,16 +16,15 @@ export function bridgeHit(x:number,y:number,z:number,dx:number,dy:number,dz:numb
 /** True where a car body at height y cannot be (with `fall`, lethal gorges, rivers and lakes are open so the car can drop in): off the deck over a gorge, cliffs, deep water, lava, or a drop (an overpass edge). */
 /** True just outside the railed part of a deck, for a body at deck height: the railings are solid, so a car cannot leave a bridge sideways. */
 export function railBlocked(x:number,z:number,y:number){for(const b of mapLayout().bridges){const c=Math.cos(b.angle),s=Math.sin(b.angle),dx=x-b.x,dz=z-b.z,u=dx*c+dz*s,v=Math.abs(-dx*s+dz*c);if(Math.abs(u)<=b.span+.6&&v>b.halfWidth&&v<b.halfWidth+2.2&&Math.abs(y-bridgeDeck(b,u))<1.4)return true;}return false;}
-/** With `dive` (small cars) the walls and floor of a dry gorge are open: the car drives down into it and climbs back out. */
-export function groundBlocked(x:number,z:number,y:number,fall=false,dive=false){const deck=deckHeight(x,z);if(deck!==null&&y>deck-1.4)return false;if((fall||dive)&&railBlocked(x,z,y))return true;if(dive&&terrainPit(x,z))return false;if(fall&&terrainHazard(x,z))return false;// a driver may go over the edge into a river, lake or lava
+export function groundBlocked(x:number,z:number,y:number,fall=false){const deck=deckHeight(x,z);if(deck!==null&&y>deck-1.4)return false;if(fall&&railBlocked(x,z,y))return true;if(fall&&terrainHazard(x,z))return false;// a driver may go over the edge into a river, lake or lava
  return terrainBlocked(x,z)||y-terrainHeight(x,z)>2.8;}
 /**
  * Checks a car footprint against impassable ground. Returns the push-out direction (unit x/z) or null.
  * The normal points from the blocked part of the footprint towards its centre, which works for cliff
  * edges and deck edges alike (the deck edge is not part of the terrain field).
  */
-export function groundContact(x:number,z:number,angle:number,hx:number,hz:number,y:number,fall=false,dive=false){const c=Math.cos(angle),s=Math.sin(angle);let nx=0,nz=0,hit=false;
- for(const [a,b] of [[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1],[.5,1],[-.5,1],[.5,-1],[-.5,-1],[1,.5],[-1,.5],[1,-.5],[-1,-.5]]){const lx=a*hx*.96,lz=b*hz*.96,px=x+lx*c+lz*s,pz=z-lx*s+lz*c;if(!groundBlocked(px,pz,y,fall,dive))continue;hit=true;nx+=x-px;nz+=z-pz;}
+export function groundContact(x:number,z:number,angle:number,hx:number,hz:number,y:number,fall=false){const c=Math.cos(angle),s=Math.sin(angle);let nx=0,nz=0,hit=false;
+ for(const [a,b] of [[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1],[.5,1],[-.5,1],[.5,-1],[-.5,-1],[1,.5],[-1,.5],[1,-.5],[-1,-.5]]){const lx=a*hx*.96,lz=b*hz*.96,px=x+lx*c+lz*s,pz=z-lx*s+lz*c;if(!groundBlocked(px,pz,y,fall))continue;hit=true;nx+=x-px;nz+=z-pz;}
  if(!hit)return null;let l=Math.hypot(nx,nz);if(l<1e-6){// blocked symmetrically: fall back to the terrain gradient
   nx=blockedness(x-1,z)-blockedness(x+1,z);nz=blockedness(x,z-1)-blockedness(x,z+1);l=Math.hypot(nx,nz)||1;}
  return {nx:nx/l,nz:nz/l};}
