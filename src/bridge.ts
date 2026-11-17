@@ -1,7 +1,7 @@
 // Bridges and built landforms (ring arena walls): their drivable decks, projectile hits, collision
 // against impassable ground, and the meshes. Decks are generated from the active terrain layout.
 import * as THREE from 'three';
-import {terrainHeight,terrainBlocked,blockedness,mapLayout,bridgeLocal,ringWalls,type Bridge} from './terrain';
+import {terrainHeight,terrainBlocked,terrainHazard,blockedness,mapLayout,bridgeLocal,ringWalls,type Bridge} from './terrain';
 import type {Rect} from './physics';
 import {surfaceMaterial} from './environment';
 
@@ -13,15 +13,16 @@ export function deckHeight(x:number,z:number){let best:number|null=null;for(cons
 export function driveHeight(x:number,z:number,previousY:number){const deck=deckHeight(x,z);return deck!==null&&previousY>deck-1.4?deck:terrainHeight(x,z);}
 /** Swept projectile test against the deck slabs; returns the fraction of the step, or null. */
 export function bridgeHit(x:number,y:number,z:number,dx:number,dy:number,dz:number){for(let i=0;i<=16;i++){const t=i/16,h=deckHeight(x+dx*t,z+dz*t);if(h!==null&&y+dy*t>=h-.6&&y+dy*t<=h+.12)return t;}return null;}
-/** True where a car body at height y cannot be: off the deck over a gorge, cliffs, deep water, lava, or a drop (an overpass edge). */
-export function groundBlocked(x:number,z:number,y:number){const deck=deckHeight(x,z);if(deck!==null&&y>deck-1.4)return false;return terrainBlocked(x,z)||y-terrainHeight(x,z)>2.8;}
+/** True where a car body at height y cannot be (with `fall`, lethal gorges, rivers and lakes are open so the car can drop in): off the deck over a gorge, cliffs, deep water, lava, or a drop (an overpass edge). */
+export function groundBlocked(x:number,z:number,y:number,fall=false){const deck=deckHeight(x,z);if(deck!==null&&y>deck-1.4)return false;if(fall&&terrainHazard(x,z))return false;// a driver may go over the edge into a gorge, river or lake
+ return terrainBlocked(x,z)||y-terrainHeight(x,z)>2.8;}
 /**
  * Checks a car footprint against impassable ground. Returns the push-out direction (unit x/z) or null.
  * The normal points from the blocked part of the footprint towards its centre, which works for cliff
  * edges and deck edges alike (the deck edge is not part of the terrain field).
  */
-export function groundContact(x:number,z:number,angle:number,hx:number,hz:number,y:number){const c=Math.cos(angle),s=Math.sin(angle);let nx=0,nz=0,hit=false;
- for(const [a,b] of [[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1],[.5,1],[-.5,1],[.5,-1],[-.5,-1],[1,.5],[-1,.5],[1,-.5],[-1,-.5]]){const lx=a*hx*.96,lz=b*hz*.96,px=x+lx*c+lz*s,pz=z-lx*s+lz*c;if(!groundBlocked(px,pz,y))continue;hit=true;nx+=x-px;nz+=z-pz;}
+export function groundContact(x:number,z:number,angle:number,hx:number,hz:number,y:number,fall=false){const c=Math.cos(angle),s=Math.sin(angle);let nx=0,nz=0,hit=false;
+ for(const [a,b] of [[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1],[.5,1],[-.5,1],[.5,-1],[-.5,-1],[1,.5],[-1,.5],[1,-.5],[-1,-.5]]){const lx=a*hx*.96,lz=b*hz*.96,px=x+lx*c+lz*s,pz=z-lx*s+lz*c;if(!groundBlocked(px,pz,y,fall))continue;hit=true;nx+=x-px;nz+=z-pz;}
  if(!hit)return null;let l=Math.hypot(nx,nz);if(l<1e-6){// blocked symmetrically: fall back to the terrain gradient
   nx=blockedness(x-1,z)-blockedness(x+1,z);nz=blockedness(x,z-1)-blockedness(x,z+1);l=Math.hypot(nx,nz)||1;}
  return {nx:nx/l,nz:nz/l};}
@@ -52,9 +53,6 @@ export function buildBridge(world:THREE.Group):Rect[]{const layout=mapLayout(),p
    beam(b,-b.span-.6,b.span+.6,side*(b.halfWidth-.12),.95,1.08,.2,paint);beam(b,-b.span-.6,b.span+.6,side*(b.halfWidth-.12),.45,.55,.12,paint);
    // Concrete abutments where the deck lands on each rim.
    for(const end of [-1,1]){const u=end*(b.half-.9),p=placeOnBridge(b,u,side*(b.halfWidth+.2)),base=bridgeDeck(b,u),block=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.6,1.3),concrete);block.position.set(p.x,base+.15,p.z);block.rotation.y=-b.angle;add(block);}}
-  // Piers down to the gorge floor, with a cross beam under the deck (an overpass keeps the road below clear).
-  if(!b.over)for(const u of [-b.span*.42,b.span*.42]){const top=bridgeDeck(b,u)-1.2;for(const v of [-b.halfWidth*.55,b.halfWidth*.55]){const p=placeOnBridge(b,u,v),bottom=terrainHeight(p.x,p.z)-.6,h=Math.max(.5,top-bottom),pier=new THREE.Mesh(new THREE.CylinderGeometry(.55,.75,h,12),concrete);pier.position.set(p.x,bottom+h/2,p.z);add(pier);}
-   const p=placeOnBridge(b,u,0),cap=new THREE.Mesh(new THREE.BoxGeometry(1.1,.7,b.halfWidth*2-.3),concrete);cap.position.set(p.x,top+.05,p.z);cap.rotation.y=-b.angle;add(cap);}
  }
  // Ring arenas: concrete barrier segments with hazard caps, gate pylons with lamps.
  const barrier=surfaceMaterial('concrete',{color:0xd8d2c6}),hazard=new THREE.MeshStandardMaterial({color:0xd9ad35,roughness:.6}),lamp=new THREE.MeshBasicMaterial({color:new THREE.Color(1,.8,.5).multiplyScalar(3)});

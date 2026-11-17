@@ -7,7 +7,7 @@ Browser-based single-player vehicular combat. Live build uses self-contained ass
 Choose a vehicle, use its distinct weapon and skill, optionally upgrade armor/engine/firepower, then choose a mode and arena. All opponents and teammates are AI.
 
 - Touch: left stick drives toward a screen direction; right stick independently aims and shoots. A center tap uses aim assist for visible opponents. Vehicle skill is above the right stick.
-- Optional wheel control: continuous forward throttle, wheel steering and assisted fire.
+- Optional "stick + auto-aim" touch layout: left stick drives, the turret locks on to the nearest visible enemy, the right side only fires and casts skills. (The old wheel layout was removed; saves that used it move to this layout.)
 - Desktop: WASD, pointer aim, Space fire, Q skill, Escape pause.
 - The game pauses when backgrounded. Progress, settings and milestones are stored in this browser's localStorage.
 
