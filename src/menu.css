@@ -367,6 +367,12 @@ dialog.welcome::backdrop{background:radial-gradient(circle at 50% 40%,#1a2530cc,
 #shell.menu .metal-button{transition:border-color .2s,background .2s}
 #shell.menu .metal-button:hover{border-color:var(--amber);background:#f2b64d14}
 #shell.menu .field-manual p{font-size:9.5px;margin:5px 0}
+/* The manual is the fifth card: span both columns so no half-row is left empty, and flow its tips in two columns. */
+#shell.menu .settings-card.field-manual{grid-column:1/-1;columns:2;column-gap:24px}
+#shell.menu .field-manual h3,#shell.menu .field-manual .build-line{column-span:all}
+#shell.menu .field-manual p{break-inside:avoid;margin:0 0 10px}
+#shell.menu .field-manual h3{margin-bottom:10px}
+#app.portrait #shell.menu .settings-card.field-manual{columns:1}
 #shell.menu .field-manual p b{color:var(--amber-2);margin-right:6px}
 #shell.menu .page-heading h1{display:flex;align-items:baseline;gap:4px}
 
