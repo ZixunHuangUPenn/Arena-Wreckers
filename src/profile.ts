@@ -92,7 +92,15 @@ export class ProfileStore{
  claimTask(id:string){const d=this.data,t=[...d.daily.tasks,...d.weekly.tasks].find(x=>x.id===id),def=taskDef(id);if(!t||!def||t.claimed||t.progress<def.target)return false;t.claimed=true;this.grant(def.reward);this.save();return true;}
  statValue(stat:StatKey){const d=this.data;if(stat==='level')return this.level;if(stat==='weaponLevels')return d.upgrades.reduce((s,u)=>s+u.weapon,0);return d[stat];}
  claim(id:string){const a=achievements.find(x=>x.id===id);if(!a||this.statValue(a.stat)<a.target||this.data.claims.includes(id))return false;this.data.claims.push(id);this.grant(a.reward);this.save();return true;}
- claimable(){return achievements.filter(a=>!this.data.claims.includes(a.id)&&this.statValue(a.stat)>=a.target).length+(this.tasksOpen()?[...this.data.daily.tasks,...this.data.weekly.tasks].filter(t=>!t.claimed&&t.progress>=(taskDef(t.id)?.target??1e9)).length:0);}
+ /** Achievement tiers that are reached but not yet claimed. */
+ claimableAchievements(){return achievements.filter(a=>!this.data.claims.includes(a.id)&&this.statValue(a.stat)>=a.target);}
+ /** Finished daily and weekly tasks whose reward is still waiting. */
+ claimableTasks(){return this.tasksOpen()?[...this.data.daily.tasks,...this.data.weekly.tasks].filter(t=>!t.claimed&&t.progress>=(taskDef(t.id)?.target??1e9)):[];}
+ claimable(){return this.claimableAchievements().length+this.claimableTasks().length;}
+ /** Claims every waiting reward of one module; returns how many were claimed. */
+ claimAll(kind:'tasks'|'achievements'){let n=0;if(kind==='tasks'){for(const t of this.claimableTasks())if(this.claimTask(t.id))n++;}else for(const a of this.claimableAchievements())if(this.claim(a.id))n++;return n;}
+ /** Parts and credits still needed to take every unlocked weapon to the top level. */
+ weaponNeed(){const need={parts:noParts(),credits:0};this.data.upgrades.forEach((u,car)=>{if(!this.carUnlocked(car))return;for(let l=u.weapon;l<WEAPON_MAX;l++){addParts(need.parts,weaponCosts[l].parts);need.credits+=weaponCosts[l].credits;}});return need;}
  totalStars(){return this.data.stars.reduce((a,b)=>a+b,0);}
  challengeOpen(i:number){const c=challenges[i];return !!c&&this.level>=c.level&&(i===0||this.data.stars[i-1]>0)&&(c.car===undefined||this.carUnlocked(c.car));}
  /** Books a finished match: credits, experience, parts, stats, level-ups, mastery, season, tasks and challenge stars. */

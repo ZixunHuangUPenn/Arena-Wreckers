@@ -179,6 +179,13 @@ AI drivers use the same skills. Effects were checked in software rendering only,
   - on a defeat the camera moves to the nearest surviving winner and the player's car rolls to a stop.
 - Then the result screen appears as before. This applies to every mode. Slow-motion pacing has not been checked on a real device.
 
+## Build 24 — Progression panels and warehouse
+
+- Every progression module has its own page: Account, Tasks, Achievements, Mastery, Season, Warehouse, Challenges, Leaderboard. A tab strip above them switches between modules, so no page is one long scroll.
+- Red dots sit on the module that has something to claim (tasks and achievements are counted apart), on both the tab strip and the shortcut bar. "Claim all" appears when two or more rewards wait.
+- Daily and weekly tasks sit in separate framed boxes with their own colour, completion count and reset countdown.
+- New Warehouse page and shortcut: parts in stock by tier, where each kind drops, what it is used for, how much the unlocked weapons still need, and each weapon's next-level cost with a jump to the loadout.
+
 ## Build 23 — Progression and unlocks
 
 - **Two currencies.** Credits (¢, the old "parts" balance) pay for armour, engine, paint and upgrade fees. Parts now come from battle: every enemy wreck leaves a salvage crate (grey common, blue precision, gold core) that lasts 12 s; drive over it to collect. Elites and bosses carry more, Hard pays ×1.3, and half of the crates left on the field come back at the end. A match rating (C/B/A/S) adds a bonus.
