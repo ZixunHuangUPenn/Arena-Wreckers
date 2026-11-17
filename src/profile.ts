@@ -1,7 +1,7 @@
 import {tr,lang} from './i18n';
 export type Upgrade='armor'|'engine'|'weapon';
 export type Settings={control:'twin'|'auto';zoom:number;volume:number;music:number;sensitivity:number;controlScale:number;quality:'low'|'medium'|'high';shake:boolean;difficulty:'easy'|'normal'|'hard'};
-import {levelOf,carUnlockLevel,modeUnlockLevel,arenaUnlockLevel,levelReward,weaponCosts,WEAPON_MAX,statCost,matchXp,matchCredits,rating,ratingBonus,addParts,noParts,partKinds,dayKey,weekKey,pickTasks,dailyPool,weeklyPool,DAILY_COUNT,WEEKLY_COUNT,REROLL_COST,taskDef,achievements,masteryOf,masteryReward,variantUnlocked,challenges,starsFor,STAR_REWARD,starMilestones,seasonOf,seasonTier,seasonReward,encodeSave,decodeSave,type Parts,type LevelReward,type MatchSummary,type Rating,type StatKey} from './progression';
+import {levelOf,carUnlockLevel,modeUnlockLevel,arenaUnlockLevel,levelReward,weaponCosts,WEAPON_MAX,statCost,matchXp,matchCredits,rating,ratingBonus,addParts,noParts,partKinds,dayKey,weekKey,pickTasks,dailyPool,weeklyPool,DAILY_COUNT,WEEKLY_COUNT,REROLL_COST,taskDef,achievements,masteryOf,masteryReward,variantUnlocked,challenges,starGoalsFor,starCount,STAR_REWARD,starMilestones,seasonOf,seasonTier,seasonReward,encodeSave,decodeSave,type Parts,type LevelReward,type MatchSummary,type Rating,type StatKey} from './progression';
 export type TaskState={id:string;progress:number;claimed:boolean};
 export type Profile={version:3;mode:'horde'|'team'|'capture'|'elimination'|'ctf'|'charge';coins:number;xp:number;car:number;weapon:number;paints:number[];arena:number;upgrades:{armor:number;engine:number;weapon:number}[];ownedPaint:number[];games:number;wins:number;kills:number;damage:number;bestWave:number;claims:string[];settings:Settings;
  /** Battle salvage. `coins` above are the credits (信用点). */
@@ -13,7 +13,7 @@ export type Profile={version:3;mode:'horde'|'team'|'capture'|'elimination'|'ctf'
  trial:{day:string;used:number[]};
  daily:{day:string;tasks:TaskState[];rerolled:boolean;firstWin:boolean};
  weekly:{week:string;tasks:TaskState[];winCars:number[]};
- stars:number[];starClaims:number[];
+ stars:number[];starGoals:number[];starClaims:number[];
  season:{id:number;xp:number;claimed:number}};
 export const paintColors=[0x1f8796,0xd2581f,0x5d3a96,0xd8d2c4,0x5a6440,0x2c2f35,0xe2b11f,0xb8261c];
 export const paintNames=lang==='en'?['Aurora blue','Lava orange','Phantom violet','Wasteland white','Legion green','Graphite black','Signal yellow','Rally red']:['极光蓝','熔岩橙','幻影紫','荒原白','军团绿','石墨黑','信号黄','赛道红'];
@@ -22,12 +22,12 @@ export const defaultPaint=[6,4,2,3,7];
 const five=(v=0)=>Array.from({length:5},()=>v);
 const defaults=():Profile=>({version:3,mode:'horde',coins:1200,xp:0,car:1,weapon:0,paints:[...defaultPaint],arena:0,upgrades:Array.from({length:5},()=>({armor:0,engine:0,weapon:0})),ownedPaint:[0,1,2],games:0,wins:0,kills:0,damage:0,bestWave:0,claims:[],settings:{control:'twin',zoom:1,volume:65,music:60,sensitivity:1,controlScale:1,quality:'medium',shake:true,difficulty:'normal'},
  parts:{common:20,precision:0,core:0},crates:0,flags:0,captures:0,hordeClears:0,bestCombo:0,legacyCars:[],legacyAllCars:false,legacyMaps:false,levelClaimed:1,titles:['rookie'],title:'rookie',
- mastery:five(),masteryClaimed:five(1),skillMod:five(),variants:five(),trial:{day:'',used:[]},daily:{day:'',tasks:[],rerolled:false,firstWin:false},weekly:{week:'',tasks:[],winCars:[]},stars:Array.from({length:challenges.length},()=>0),starClaims:[],season:{id:0,xp:0,claimed:0}});
+ mastery:five(),masteryClaimed:five(1),skillMod:five(),variants:five(),trial:{day:'',used:[]},daily:{day:'',tasks:[],rerolled:false,firstWin:false},weekly:{week:'',tasks:[],winCars:[]},stars:Array.from({length:challenges.length},()=>0),starGoals:Array.from({length:challenges.length},()=>0),starClaims:[],season:{id:0,xp:0,claimed:0}});
 const number=(value:unknown,max=1e9)=>typeof value==='number'&&Number.isFinite(value)?Math.max(0,Math.min(max,value)):0;
 const ints=(value:unknown,length:number,max:number,fallback=0)=>Array.from({length},(_,i)=>Array.isArray(value)&&typeof value[i]==='number'?Math.floor(number(value[i],max)):fallback);
 const tasks=(value:unknown):TaskState[]=>Array.isArray(value)?value.filter(t=>t&&typeof t.id==='string'&&taskDef(t.id)).slice(0,6).map(t=>({id:t.id,progress:number(t.progress),claimed:!!t.claimed})):[];
 const str=(value:unknown)=>typeof value==='string'?value.slice(0,40):'';
-export type RewardReport={credits:number;xp:number;firstWin:boolean;rating:Rating;parts:Parts;salvage:Parts;levelBefore:number;levelAfter:number;levelRewards:{level:number;reward:LevelReward}[];masteryUps:{car:number;level:number}[];seasonBefore:number;seasonAfter:number;tasksDone:string[];challenge?:{id:number;stars:number;gained:number;best:number}};
+export type RewardReport={credits:number;xp:number;firstWin:boolean;rating:Rating;parts:Parts;salvage:Parts;levelBefore:number;levelAfter:number;levelRewards:{level:number;reward:LevelReward}[];masteryUps:{car:number;level:number}[];seasonBefore:number;seasonAfter:number;tasksDone:string[];challenge?:{id:number;stars:number;goals:number;gained:number;best:number}};
 export class ProfileStore{
  key='arena-profile-v1';data:Profile;storage?:Pick<Storage,'getItem'|'setItem'>;
  constructor(storage?:Pick<Storage,'getItem'|'setItem'>,key='arena-profile-v1'){this.storage=storage;this.key=key;this.data=defaults();try{this.data=ProfileStore.parse(storage?.getItem(key)??'null')??this.data;}catch{}}
@@ -51,7 +51,8 @@ export class ProfileStore{
   d.trial={day:str(saved.trial?.day),used:ints(saved.trial?.used,Array.isArray(saved.trial?.used)?Math.min(5,saved.trial.used.length):0,4)};
   d.daily={day:str(saved.daily?.day),tasks:tasks(saved.daily?.tasks),rerolled:!!saved.daily?.rerolled,firstWin:!!saved.daily?.firstWin};
   d.weekly={week:str(saved.weekly?.week),tasks:tasks(saved.weekly?.tasks),winCars:ints(saved.weekly?.winCars,Array.isArray(saved.weekly?.winCars)?Math.min(5,saved.weekly.winCars.length):0,4)};
-  d.stars=ints(saved.stars,challenges.length,3);d.starClaims=Array.isArray(saved.starClaims)?saved.starClaims.filter((x:unknown)=>typeof x==='number'&&starMilestones.some(m=>m.stars===x)):[];
+  // Each star belongs to one goal (bit mask). Saves from before kept only a count: read n stars as the first n goals.
+  {const counts=ints(saved.stars,challenges.length,3);d.starGoals=Array.isArray(saved.starGoals)?ints(saved.starGoals,challenges.length,7):counts.map(n=>(1<<n)-1);d.stars=d.starGoals.map(starCount);}d.starClaims=Array.isArray(saved.starClaims)?saved.starClaims.filter((x:unknown)=>typeof x==='number'&&starMilestones.some(m=>m.stars===x)):[];
   d.season={id:Math.floor(number(saved.season?.id,1e4)),xp:number(saved.season?.xp),claimed:Math.floor(number(saved.season?.claimed,30))};
   return d;}
  save(){try{this.storage?.setItem(this.key,JSON.stringify(this.data));return true;}catch{return false;}}
@@ -111,7 +112,7 @@ export class ProfileStore{
   let xp=matchXp(m);const firstWin=m.win&&!d.daily.firstWin;if(firstWin){xp*=2;d.daily.firstWin=true;}
   let credits=matchCredits(m);const grade=rating(m.score,m.win),salvage={...m.parts},parts=addParts({...m.parts},ratingBonus[grade]);
   let challenge:RewardReport['challenge'];
-  if(m.challenge!==undefined&&challenges[m.challenge]){const c=challenges[m.challenge],stars=starsFor(c,m),best=Math.max(d.stars[c.id],stars),gained=best-d.stars[c.id];d.stars[c.id]=best;credits+=gained*STAR_REWARD;challenge={id:c.id,stars,gained,best};
+  if(m.challenge!==undefined&&challenges[m.challenge]){const c=challenges[m.challenge],goals=starGoalsFor(c,m),before=d.stars[c.id];d.starGoals[c.id]|=goals;d.stars[c.id]=starCount(d.starGoals[c.id]);const best=d.stars[c.id],gained=best-before;credits+=gained*STAR_REWARD;challenge={id:c.id,stars:starCount(goals),goals,gained,best};
    for(const ms of starMilestones)if(this.totalStars()>=ms.stars&&!d.starClaims.includes(ms.stars)){d.starClaims.push(ms.stars);this.grant(ms.reward);}}
   d.coins+=credits;d.xp+=xp;addParts(d.parts,parts);d.games++;d.wins+=m.win?1:0;d.kills+=m.kills;d.damage+=m.damage;d.bestWave=Math.max(d.bestWave,m.wave);d.crates+=m.crates;d.flags+=m.flags;d.captures+=m.captures;d.bestCombo=Math.max(d.bestCombo,m.bestCombo);if(m.mode==='horde'&&m.win)d.hordeClears++;
   d.mastery[m.car]=(d.mastery[m.car]??0)+xp;d.season.xp+=xp;

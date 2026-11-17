@@ -82,11 +82,11 @@ export function lockLabel(level:number){return `<span class="lock-tag">🔒 LV $
 export const carLock=(i:number)=>carUnlockLevel[i]??1,modeLock=(m:string)=>modeUnlockLevel[m]??1,arenaLock=(a:number)=>arenaUnlockLevel[a]??1;
 
 export function challengeBoard(store:ProfileStore){const d=store.data,total=store.totalStars();
- const head=hubHead('CHALLENGES',tr('挑战关卡','Challenges'),tr('每关 3 颗星：获胜得 1 星，完成额外目标各得 1 星。每颗新星 ¢100。','3 stars each: a win earns one, each extra goal one more. ¢100 per new star.'),`<div class="star-total"><b>★ ${total}</b><small>/ ${challenges.length*3}</small></div>`)+`
+ const head=hubHead('CHALLENGES',tr('挑战关卡','Challenges'),tr('每关 3 颗星，每颗对应一个目标（额外目标需获胜才算），可分多次完成。每颗新星 ¢100。','3 stars each, one per goal (extra goals count only in a win); collect them over several runs. ¢100 per new star.'),`<div class="star-total"><b>★ ${total}</b><small>/ ${challenges.length*3}</small></div>`)+`
  <div class="star-road">${starMilestones.map(m=>`<span class="${total>=m.stars?'on':''}"><b>★ ${m.stars}</b>${rewardChips(m.reward)}</span>`).join('')}</div>`;
  const cards=challenges.map((c,i)=>{const open=store.challengeOpen(i),stars=d.stars[i],why=store.level<c.level?tr(`LEVEL ${c.level} 开放`,`Opens at LEVEL ${c.level}`):i>0&&d.stars[i-1]===0?tr('先通关上一关','Clear the previous one first'):c.car!==undefined&&!store.carUnlocked(c.car)?tr(`需要解锁 ${carLabel[c.car]}`,`Needs ${carLabel[c.car]}`):'';
   return `<div class="challenge-card${open?'':' locked'}${stars===3?' perfect':''}"><img src="${assetPath('assets/')}maps/arena-${c.arena}.jpg" alt="" loading="lazy" draggable="false"/><div class="ch-num">${String(i+1).padStart(2,'0')}</div><div class="ch-body"><strong>${c.name}</strong><small>${modeNames[c.mode as keyof typeof modeNames]} · ${arenas[c.arena].name} · ${[tr('轻松','Easy'),tr('标准','Normal'),tr('挑战','Hard')][['easy','normal','hard'].indexOf(c.difficulty)]}${c.car!==undefined?` · ${carLabel[c.car]}`:''}</small>
-  <ul>${c.goals.map((g,k)=>`<li class="${stars>k?'on':''}"><i>★</i>${goalText(g)}</li>`).join('')}</ul></div><div class="ch-foot">${open?`<button class="primary-button small" data-challenge="${i}">${stars?tr('再次挑战','Replay'):tr('开始挑战','Start')} ▶</button>`:`<span class="lock-tag">🔒 ${why}</span>`}</div></div>`;}).join('');
+  <ul>${c.goals.map((g,k)=>`<li class="${d.starGoals[i]>>k&1?'on':''}"><i>★</i>${goalText(g)}</li>`).join('')}</ul></div><div class="ch-foot">${open?`<button class="primary-button small" data-challenge="${i}">${stars?tr('再次挑战','Replay'):tr('开始挑战','Start')} ▶</button>`:`<span class="lock-tag">🔒 ${why}</span>`}</div></div>`;}).join('');
  return head+`<div class="challenge-grid">${cards}</div>`;}
 
 const carIds=['mantis','punisher','retro','pummeler','bigrig'];
@@ -107,7 +107,7 @@ export function saveBackup(){return `<div class="save-backup"><button class="met
 export function reportRewards(store:ProfileStore,r:RewardReport){const p=levelProgress(store.data.xp),cards:string[]=[];
  for(const {level,reward} of r.levelRewards){const lines=rewardLines(reward as LevelReward);cards.push(`<span class="levelup-card"><b>LEVEL UP · LV ${level}</b>${lines.map(esc).join(' · ')}</span>`);}
  const extras:string[]=[];
- if(r.challenge)extras.push(`<span class="report-note star">${'★'.repeat(r.challenge.stars)}${'☆'.repeat(3-r.challenge.stars)} ${challenges[r.challenge.id].name}${r.challenge.gained?tr(` · 新星 +${r.challenge.gained}`,` · +${r.challenge.gained} new`):''}</span>`);
+ if(r.challenge)extras.push(`<span class="report-note star">${[0,1,2].map(k=>r.challenge!.goals>>k&1?'★':'☆').join('')} ${challenges[r.challenge.id].name}${r.challenge.gained?tr(` · 新星 +${r.challenge.gained}`,` · +${r.challenge.gained} new`):''}</span>`);
  for(const id of r.tasksDone){const def=taskDef(id);if(def)extras.push(`<span class="report-note task">✓ ${def.name}</span>`);}
  if(r.seasonAfter>r.seasonBefore)extras.push(`<span class="report-note season">${tr(`赛季等级 ${r.seasonAfter}`,`Season tier ${r.seasonAfter}`)}</span>`);
  for(const m of r.masteryUps)extras.push(`<span class="report-note mastery">${carLabel[m.car]} · ${tr(`熟练度 ${m.level}`,`Mastery ${m.level}`)}</span>`);

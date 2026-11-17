@@ -229,7 +229,10 @@ export const challenges:Challenge[]=[
 export function goalText(g:StarGoal){switch(g.kind){case 'win':return tr('获胜','Win');case 'deaths':return g.value?tr(`获胜且阵亡不超过 ${g.value} 次`,`Win with at most ${g.value} deaths`):tr('获胜且不阵亡','Win without dying');case 'kills':return tr(`击毁 ${g.value} 辆敌车`,`Wreck ${g.value} cars`);case 'time':return tr(`${Math.floor(g.value/60)}:${String(g.value%60).padStart(2,'0')} 内获胜`,`Win within ${Math.floor(g.value/60)}:${String(g.value%60).padStart(2,'0')}`);case 'damage':return tr(`造成 ${g.value} 伤害`,`Deal ${g.value} damage`);case 'score':return tr(`获得 ${g.value} 积分`,`Earn ${g.value} points`);case 'wave':return tr(`撑过全部 ${g.value} 波`,`Survive all ${g.value} waves`);case 'flags':return tr(`亲自交付 ${g.value} 面旗`,`Deliver ${g.value} flags yourself`);case 'captures':return tr(`亲自占领 ${g.value} 个据点`,`Capture ${g.value} points yourself`);}}
 export function goalMet(g:StarGoal,m:MatchSummary){switch(g.kind){case 'win':return m.win;case 'deaths':return m.win&&m.deaths<=g.value;case 'kills':return m.kills>=g.value;case 'time':return m.win&&m.seconds<=g.value;case 'damage':return m.damage>=g.value;case 'score':return m.score>=g.value;case 'wave':return m.mode==='horde'&&m.win;case 'flags':return m.flags>=g.value;case 'captures':return m.captures>=g.value;}}
 /** Stars earned: a star needs a win, the other goals each add one. */
-export function starsFor(c:Challenge,m:MatchSummary){if(!m.win)return 0;return 1+(goalMet(c.goals[1],m)?1:0)+(goalMet(c.goals[2],m)?1:0);}
+/** Which of the three goals a run met, as bits (1 = win, 2 = goal 2, 4 = goal 3); nothing counts without a win. */
+export function starGoalsFor(c:Challenge,m:MatchSummary){if(!m.win)return 0;return 1|(goalMet(c.goals[1],m)?2:0)|(goalMet(c.goals[2],m)?4:0);}
+export const starCount=(mask:number)=>(mask&1)+(mask>>1&1)+(mask>>2&1);
+export function starsFor(c:Challenge,m:MatchSummary){return starCount(starGoalsFor(c,m));}
 export const STAR_REWARD=100;
 export const starMilestones:{stars:number;reward:{credits?:number;parts?:Partial<Parts>;title?:string}}[]=[
  {stars:10,reward:{parts:{core:1}}},{stars:20,reward:{parts:{core:2}}},{stars:30,reward:{parts:{core:2},credits:1000}},{stars:40,reward:{parts:{core:3}}},{stars:50,reward:{parts:{core:3},credits:2000}},{stars:60,reward:{parts:{core:5},title:'star'}}];
