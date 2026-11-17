@@ -61,7 +61,7 @@ const HALF=100,CELL=.625,GRID=Math.round(2*HALF/CELL)+1;
 /** Half the side of the walled arena, in metres. */
 export const ARENA=HALF;
 export const terrainGrid={size:GRID,cell:CELL,half:HALF};
-let layout:Layout;let heights=new Float32Array(GRID*GRID);let blockedField=new Uint8Array(GRID*GRID);let fluidLevel=new Float32Array(GRID*GRID);let fluidKind=new Uint8Array(GRID*GRID);
+let layout:Layout;let heights=new Float32Array(GRID*GRID);let blockedField=new Uint8Array(GRID*GRID);let fluidLevel=new Float32Array(GRID*GRID);let fluidKind=new Uint8Array(GRID*GRID);let hazardField=new Uint8Array(GRID*GRID);
 const fluidNames:Fluid[]=['water','lava','ice','toxic','molten'];
 export let terrainStyle=0;
 let currentSeed=0;
@@ -115,7 +115,7 @@ export function fluidSurface(x:number,z:number){if(Math.abs(x)<=HALF&&Math.abs(z
 // ---------------------------------------------------------------- baking
 const index=(x:number,z:number)=>{const i=clamp(Math.round((x+HALF)/CELL),0,GRID-1),j=clamp(Math.round((z+HALF)/CELL),0,GRID-1);return j*GRID+i;};
 function bake(L:Layout){
- heights=new Float32Array(GRID*GRID);blockedField=new Uint8Array(GRID*GRID);fluidLevel=new Float32Array(GRID*GRID);fluidKind=new Uint8Array(GRID*GRID);const floorField=new Uint8Array(GRID*GRID);
+ heights=new Float32Array(GRID*GRID);blockedField=new Uint8Array(GRID*GRID);hazardField=new Uint8Array(GRID*GRID);fluidLevel=new Float32Array(GRID*GRID);fluidKind=new Uint8Array(GRID*GRID);const floorField=new Uint8Array(GRID*GRID);
  for(let j=0;j<GRID;j++)for(let i=0;i<GRID;i++){const x=-HALF+i*CELL,z=-HALF+j*CELL,k=j*GRID+i;const ds=channelDistances(L,x,z);heights[k]=shapeHeight(x,z,L,ds);const f=fluidAt(L,x,z,ds);if(f&&f.level>heights[k]-.02){fluidLevel[k]=f.level;fluidKind[k]=fluidNames.indexOf(f.fluid)+1;}
   // Gorge and river floors are impassable; a sunken road's floor is a road.
   for(let c=0;c<ds.length;c++){const ch=L.channels[c];if(ch.kind!=='cut'&&ds[c]<ch.floorHalf+1.2){floorField[k]=1;break;}}}
@@ -123,8 +123,17 @@ function bake(L:Layout){
  for(let j=0;j<GRID;j++){const j0=j<2?0:j-2,j1=j>last-2?last:j+2;for(let i=0;i<GRID;i++){const k=j*GRID+i,i0=i<2?0:i-2,i1=i>last-2?last:i+2;
   const slope=Math.max(Math.abs(heights[j*GRID+i1]-heights[j*GRID+i0]),Math.abs(heights[j1*GRID+i]-heights[j0*GRID+i]),Math.abs(heights[j1*GRID+i1]-heights[j0*GRID+i0])/1.414,Math.abs(heights[j0*GRID+i1]-heights[j1*GRID+i0])/1.414)/(4*CELL);
   let block=slope>.95||floorField[k]===1;if(!block&&fluidKind[k]){const fluid=fluidNames[fluidKind[k]-1],depth=fluidLevel[k]-heights[k];if(fluid!=='ice'&&depth>(fluid==='water'||fluid==='toxic'?.45:.02))block=true;}
-  blockedField[k]=block?1:0;}}
+  blockedField[k]=block?1:0;
+  // Gorge/river floors and deep liquid are lethal rather than walls (2); the steep banks into them are passable on the way down (1).
+  if(floorField[k]===1||(fluidKind[k]&&block&&slope<=.95))hazardField[k]=2;}}
+ dilateHazard(hazardField);
 }
+/** Marks the blocked cells connected to a lethal floor within about 8 m (the banks down into it) as hazard 1. */
+function dilateHazard(h:Uint8Array){let front:number[]=[];for(let k=0;k<h.length;k++)if(h[k]===2)front.push(k);
+ for(let step=0;step<13&&front.length;step++){const next:number[]=[];for(const k of front){const i=k%GRID,j=(k-i)/GRID;for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){const a=i+di,b=j+dj;if(a<0||b<0||a>=GRID||b>=GRID)continue;const n=b*GRID+a;if(h[n]===0&&blockedField[n]===1){h[n]=1;next.push(n);}}}front=next;}
+ return h;}
+/** Lethal ground: 2 on a gorge or river floor or in deep liquid, 1 on the bank leading into it, 0 elsewhere. */
+export function terrainHazard(x:number,z:number){if(Math.abs(x)>HALF||Math.abs(z)>HALF)return 0;return hazardField[index(x,z)];}
 /** Ground height, interpolated on exactly the triangles the ground mesh renders. */
 export function terrainHeight(x:number,z:number){
  const gx=clamp((x+HALF)/CELL,0,GRID-1.0001),gz=clamp((z+HALF)/CELL,0,GRID-1.0001),i=Math.floor(gx),j=Math.floor(gz),fx=gx-i,fz=gz-j,k=j*GRID+i;
