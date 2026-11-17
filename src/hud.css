@@ -10,8 +10,20 @@
 #gameUI #hud .bar .fill{border-radius:3px;background:linear-gradient(180deg,#9df0a8,#3fbf6a);box-shadow:0 0 8px #3fbf6a66}
 #gameUI #ranges{margin-top:4px;font-size:8.5px;color:#9fb3ba;letter-spacing:.06em}
 #gameUI #stats{padding:8px 12px;border-radius:10px;background:var(--glass);border:1px solid #ffffff1c;border-right:3px solid var(--amber);box-shadow:0 8px 20px #0007;text-shadow:none;font-size:11.5px;line-height:1.55}
-#gameUI #timer{font-size:17px;font-weight:800;letter-spacing:.06em;color:var(--ink);font-variant-numeric:tabular-nums}
-#gameUI #scoreboard{color:var(--amber-2)}
+#gameUI #timer{font-size:15px;font-weight:800;letter-spacing:.06em;color:var(--ink);font-variant-numeric:tabular-nums}
+/* Top-right block, top to bottom: clock, big team score, K/D/A, then a quiet personal score. */
+#gameUI #matchStatus{display:flex;align-items:baseline;justify-content:flex-end;gap:6px;margin:1px 0 2px;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.05}
+#gameUI #matchStatus b{font-size:30px;font-weight:800}
+#gameUI #matchStatus b.blue{color:#7cc4ff}
+#gameUI #matchStatus b.red{color:#ff8a78}
+#gameUI #matchStatus i{font-style:normal;font-size:20px;font-weight:700;color:#ffffff55}
+#gameUI #matchStatus small{font-size:10px;font-weight:600;color:var(--muted);margin-right:2px}
+#gameUI #matchStatus .wave{font-size:18px;font-weight:800;color:var(--ink)}
+#gameUI #kda{font-size:16px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+#gameUI #kda i{font-style:normal;font-weight:600;color:#ffffff4d;margin:0 3px}
+#gameUI #scoreboard{font-size:10.5px;font-weight:600;color:var(--muted)}
+#gameUI #scoreboard span{color:#cfd8dc;font-variant-numeric:tabular-nums}
+.portrait #gameUI #matchStatus b{font-size:26px}
 /* One button style for menu / pause / sound, laid out as a row under the player card. */
 #gameUI #leave,#gameUI #pause,#gameUI #mute{position:absolute;top:100px;right:auto;display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px 0 8px;border-radius:9px;background:var(--glass);border:1px solid #ffffff24;color:var(--ink);font-size:10.5px;font-weight:700;letter-spacing:.04em;box-shadow:0 6px 14px #0006;text-shadow:none;transition:border-color .15s,transform .15s,background .15s}
 #gameUI #leave{left:18px}#gameUI #pause{left:104px}#gameUI #mute{left:176px}
