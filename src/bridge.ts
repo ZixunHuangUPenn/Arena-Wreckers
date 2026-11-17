@@ -51,8 +51,7 @@ export function buildBridge(world:THREE.Group):Rect[]{const layout=mapLayout(),p
   for(const side of [-1,1]){beam(b,-b.half+.4,b.half-.4,side*(b.halfWidth-.55),-1.35,-.5,.7,steel);
    for(let u=-b.span-.6;u<=b.span+.6;u+=1.6){const p=placeOnBridge(b,u,side*(b.halfWidth-.12)),post=new THREE.Mesh(new THREE.BoxGeometry(.16,1.05,.16),paint);post.position.set(p.x,bridgeDeck(b,u)+.52,p.z);add(post);}
    beam(b,-b.span-.6,b.span+.6,side*(b.halfWidth-.12),.95,1.08,.2,paint);beam(b,-b.span-.6,b.span+.6,side*(b.halfWidth-.12),.45,.55,.12,paint);
-   // Concrete abutments where the deck lands on each rim.
-   for(const end of [-1,1]){const u=end*(b.half-.9),p=placeOnBridge(b,u,side*(b.halfWidth+.2)),base=bridgeDeck(b,u),block=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.6,1.3),concrete);block.position.set(p.x,base+.15,p.z);block.rotation.y=-b.angle;add(block);}}
+  }
  }
  // Ring arenas: concrete barrier segments with hazard caps, gate pylons with lamps.
  const barrier=surfaceMaterial('concrete',{color:0xd8d2c6}),hazard=new THREE.MeshStandardMaterial({color:0xd9ad35,roughness:.6}),lamp=new THREE.MeshBasicMaterial({color:new THREE.Color(1,.8,.5).multiplyScalar(3)});
