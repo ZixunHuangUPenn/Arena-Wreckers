@@ -93,7 +93,12 @@ function mesa(p:Plateau,x:number,z:number,h:number){{const r=Math.max(p.rx,p.rz)
   // Cliff faces get a little terracing so they read as layered rock rather than a smooth bump.
   let t=smooth(s/width+.5);if(ramp<.5)t=lerp(t,Math.round(t*3)/3,.25*(1-ramp));h+=p.height*t;}
  return h;}
-function bridgePads(L:Layout,x:number,z:number,h:number){for(const b of L.bridges){if(Math.abs(x-b.x)>b.half+9||Math.abs(z-b.z)>b.half+9)continue;const c=Math.cos(b.angle),s=Math.sin(b.angle);for(const [end,height] of [[-1,b.h0],[1,b.h1]] as const){const ex=b.x+c*b.half*end,ez=b.z+s*b.half*end,d=Math.hypot(x-ex,z-ez);if(d<9)h=lerp(h,height-.02,smooth((9-d)/5));}}return h;}
+/** Bridge deck half-width in metres (doubled from 4.3: two lanes each way). */
+export const BRIDGE_HALF_WIDTH=8.6;
+// Each bridge head flattens a pad as wide as the deck: a rounded rectangle 9 m out from the end, full height within 4 m.
+// Under the deck the ground never pokes up through the slab near its ends.
+function bridgePads(L:Layout,x:number,z:number,h:number){for(const b of L.bridges){const reach=b.half+b.halfWidth+9;if(Math.abs(x-b.x)>reach||Math.abs(z-b.z)>reach)continue;const c=Math.cos(b.angle),s=Math.sin(b.angle),dx=x-b.x,dz=z-b.z,u=dx*c+dz*s,side=Math.max(0,Math.abs(-dx*s+dz*c)-(b.halfWidth-4.3));for(const [end,height] of [[-1,b.h0],[1,b.h1]] as const){const d=Math.hypot(u-b.half*end,side);if(d<9)h=lerp(h,height-.02,smooth((9-d)/5));}
+ if(Math.abs(u)<=b.half&&side<=4.3+.5)h=Math.min(h,lerp(b.h0,b.h1,(u+b.half)/(2*b.half))-.06);}return h;}
 function channelCarve(L:Layout,x:number,z:number,h:number,ds?:number[]){let cut=0;L.channels.forEach((ch,i)=>{let d=ds?ds[i]:pathDistance(x,z,ch);if(d>ch.halfWidth+2)return;const depth=ch.depth*channelDepth(ch,x,z);if(depth<=0)return;if(ch.kind!=='cut')d+=(vnoise(x*.35,z*.35,77)-.5)*1.4;
   const m=1-smooth((d-ch.floorHalf)/(ch.halfWidth-ch.floorHalf));// gorges get stepped rock walls
   cut=Math.max(cut,depth*(ch.kind==='gorge'?lerp(m,Math.round(m*4)/4,.3):m));});
@@ -178,10 +183,10 @@ function tryLayout(style:number,seed:number,attempt:number,simple:boolean,bare=f
  /** Lays a deck across a channel at point index i, perpendicular to the local direction. */
  const bridge=(ch:Channel,i:number,over=false)=>{const pts=ch.points,a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],dir=Math.atan2(b.z-a.z,b.x-a.x),angle=dir+Math.PI/2,p=pts[i],span=ch.halfWidth+.5,half=span+3.2,c0=Math.cos(angle),s0=Math.sin(angle);
   for(const end of [-1,1])if(!inside(p.x+c0*(half+9)*end,p.z+s0*(half+9)*end,3))return false;
-  if(L.bridges.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<o.half+half+14))return false;
-  L.bridges.push({x:p.x,z:p.z,angle,half,halfWidth:4.3,h0:baseShape(L,p.x-c0*half,p.z-s0*half),h1:baseShape(L,p.x+c0*half,p.z+s0*half),span,over});
+  if(L.bridges.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<Math.max(o.half,o.halfWidth)+Math.max(half,BRIDGE_HALF_WIDTH)+14))return false;
+  L.bridges.push({x:p.x,z:p.z,angle,half,halfWidth:BRIDGE_HALF_WIDTH,h0:baseShape(L,p.x-c0*half,p.z-s0*half),h1:baseShape(L,p.x+c0*half,p.z+s0*half),span,over});
   // Keep both approaches clear of other landforms.
-  for(const end of [-1,1])hard.push({x:p.x+c0*(half+6)*end,z:p.z+s0*(half+6)*end,r:8});return true;};
+  for(const end of [-1,1])hard.push({x:p.x+c0*(half+6)*end,z:p.z+s0*(half+6)*end,r:BRIDGE_HALF_WIDTH+3.7});return true;};
  if(!bare){
   // The main gorge or river runs corner to corner between the bases; only bridges cross it.
   const diag=Math.PI/4,nxm=-Math.sin(diag),nzm=Math.cos(diag);
