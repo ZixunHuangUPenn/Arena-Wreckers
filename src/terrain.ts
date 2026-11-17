@@ -61,7 +61,7 @@ const HALF=100,CELL=.625,GRID=Math.round(2*HALF/CELL)+1;
 /** Half the side of the walled arena, in metres. */
 export const ARENA=HALF;
 export const terrainGrid={size:GRID,cell:CELL,half:HALF};
-let layout:Layout;let heights=new Float32Array(GRID*GRID);let blockedField=new Uint8Array(GRID*GRID);let fluidLevel=new Float32Array(GRID*GRID);let fluidKind=new Uint8Array(GRID*GRID);let hazardField=new Uint8Array(GRID*GRID);
+let layout:Layout;let heights=new Float32Array(GRID*GRID);let blockedField=new Uint8Array(GRID*GRID);let fluidLevel=new Float32Array(GRID*GRID);let fluidKind=new Uint8Array(GRID*GRID);let hazardField=new Uint8Array(GRID*GRID);let pitField=new Uint8Array(GRID*GRID);
 const fluidNames:Fluid[]=['water','lava','ice','toxic','molten'];
 export let terrainStyle=0;
 let currentSeed=0;
@@ -93,8 +93,13 @@ function mesa(p:Plateau,x:number,z:number,h:number){{const r=Math.max(p.rx,p.rz)
   // Cliff faces get a little terracing so they read as layered rock rather than a smooth bump.
   let t=smooth(s/width+.5);if(ramp<.5)t=lerp(t,Math.round(t*3)/3,.25*(1-ramp));h+=p.height*t;}
  return h;}
-/** Bridge deck half-width in metres (doubled from 4.3: two lanes each way). */
-export const BRIDGE_HALF_WIDTH=8.6;
+/** Deck half-width of the outer bridges (tributaries, overpasses, the ends of the main channel), in metres. */
+export const BRIDGE_HALF_WIDTH=6;
+/** Deck half-width of the central crossings of the main channel: the main battle lanes get the widest decks. */
+export const BRIDGE_WIDE_HALF_WIDTH=10.5;
+/** Pickup spots: [x, z, kind] with kinds 0 repair, 1 double damage, 2 speed boost, 3 shield. Mirrored pairs keep both halves equal. */
+export const PICKUP_SPOTS:[number,number,number][]=[[-40,14,1],[38,-6,1],[-8,40,0],[6,-38,0],[-62,-30,0],[60,32,0],[-28,-66,1],[30,66,1],
+ [-38,-16,2],[38,16,2],[16,38,2],[-16,-38,2],[-67,18,3],[67,-18,3],[-18,67,3],[18,-67,3]];
 // Each bridge head flattens a pad as wide as the deck: a rounded rectangle 9 m out from the end, full height within 4 m.
 // Under the deck the ground never pokes up through the slab near its ends.
 function bridgePads(L:Layout,x:number,z:number,h:number){for(const b of L.bridges){const reach=b.half+b.halfWidth+9;if(Math.abs(x-b.x)>reach||Math.abs(z-b.z)>reach)continue;const c=Math.cos(b.angle),s=Math.sin(b.angle),dx=x-b.x,dz=z-b.z,u=dx*c+dz*s,side=Math.max(0,Math.abs(-dx*s+dz*c)-(b.halfWidth-4.3));for(const [end,height] of [[-1,b.h0],[1,b.h1]] as const){const d=Math.hypot(u-b.half*end,side);if(d<9)h=lerp(h,height-.02,smooth((9-d)/5));}
@@ -120,17 +125,19 @@ export function fluidSurface(x:number,z:number){if(Math.abs(x)<=HALF&&Math.abs(z
 // ---------------------------------------------------------------- baking
 const index=(x:number,z:number)=>{const i=clamp(Math.round((x+HALF)/CELL),0,GRID-1),j=clamp(Math.round((z+HALF)/CELL),0,GRID-1);return j*GRID+i;};
 function bake(L:Layout){
- heights=new Float32Array(GRID*GRID);blockedField=new Uint8Array(GRID*GRID);hazardField=new Uint8Array(GRID*GRID);fluidLevel=new Float32Array(GRID*GRID);fluidKind=new Uint8Array(GRID*GRID);const floorField=new Uint8Array(GRID*GRID);
+ heights=new Float32Array(GRID*GRID);blockedField=new Uint8Array(GRID*GRID);hazardField=new Uint8Array(GRID*GRID);pitField=new Uint8Array(GRID*GRID);fluidLevel=new Float32Array(GRID*GRID);fluidKind=new Uint8Array(GRID*GRID);const floorField=new Uint8Array(GRID*GRID);
  for(let j=0;j<GRID;j++)for(let i=0;i<GRID;i++){const x=-HALF+i*CELL,z=-HALF+j*CELL,k=j*GRID+i;const ds=channelDistances(L,x,z);heights[k]=shapeHeight(x,z,L,ds);const f=fluidAt(L,x,z,ds);if(f&&f.level>heights[k]-.02){fluidLevel[k]=f.level;fluidKind[k]=fluidNames.indexOf(f.fluid)+1;}
   // Gorge and river floors are impassable; a sunken road's floor is a road.
-  for(let c=0;c<ds.length;c++){const ch=L.channels[c];if(ch.kind!=='cut'&&ds[c]<ch.floorHalf+1.2){floorField[k]=1;break;}}}
+  for(let c=0;c<ds.length;c++){const ch=L.channels[c];if(ch.kind!=='cut'&&ds[c]<ch.floorHalf+1.2){floorField[k]=1;break;}}
+  // A dry gorge is a shallow ravine rather than an abyss: small cars may drive down into it and climb out.
+  if(!fluidKind[k])for(let c=0;c<ds.length;c++){const ch=L.channels[c];if(ch.kind==='gorge'&&!ch.fluid&&ds[c]<ch.halfWidth+1.5){pitField[k]=1;break;}}}
  const last=GRID-1;
  for(let j=0;j<GRID;j++){const j0=j<2?0:j-2,j1=j>last-2?last:j+2;for(let i=0;i<GRID;i++){const k=j*GRID+i,i0=i<2?0:i-2,i1=i>last-2?last:i+2;
   const slope=Math.max(Math.abs(heights[j*GRID+i1]-heights[j*GRID+i0]),Math.abs(heights[j1*GRID+i]-heights[j0*GRID+i]),Math.abs(heights[j1*GRID+i1]-heights[j0*GRID+i0])/1.414,Math.abs(heights[j0*GRID+i1]-heights[j1*GRID+i0])/1.414)/(4*CELL);
   let block=slope>.95||floorField[k]===1;if(!block&&fluidKind[k]){const fluid=fluidNames[fluidKind[k]-1],depth=fluidLevel[k]-heights[k];if(fluid!=='ice'&&depth>(fluid==='water'||fluid==='toxic'?.45:.02))block=true;}
   blockedField[k]=block?1:0;
   // Gorge/river floors and deep liquid are lethal rather than walls (2); the steep banks into them are passable on the way down (1).
-  if(floorField[k]===1||(fluidKind[k]&&block&&slope<=.95))hazardField[k]=2;}}
+  if((floorField[k]===1&&!pitField[k])||(fluidKind[k]&&block&&slope<=.95))hazardField[k]=2;}}
  dilateHazard(hazardField);
 }
 /** Marks the blocked cells connected to a lethal floor within about 8 m (the banks down into it) as hazard 1. */
@@ -139,6 +146,8 @@ function dilateHazard(h:Uint8Array){let front:number[]=[];for(let k=0;k<h.length
  return h;}
 /** Lethal ground: 2 on a gorge or river floor or in deep liquid, 1 on the bank leading into it, 0 elsewhere. */
 export function terrainHazard(x:number,z:number){if(Math.abs(x)>HALF||Math.abs(z)>HALF)return 0;return hazardField[index(x,z)];}
+/** 1 inside a dry gorge (floor and walls): blocked for big cars, open to small ones, and never lethal. */
+export function terrainPit(x:number,z:number){if(Math.abs(x)>HALF||Math.abs(z)>HALF)return 0;return pitField[index(x,z)];}
 /** Ground height, interpolated on exactly the triangles the ground mesh renders. */
 export function terrainHeight(x:number,z:number){
  const gx=clamp((x+HALF)/CELL,0,GRID-1.0001),gz=clamp((z+HALF)/CELL,0,GRID-1.0001),i=Math.floor(gx),j=Math.floor(gz),fx=gx-i,fz=gz-j,k=j*GRID+i;
@@ -181,12 +190,12 @@ function tryLayout(style:number,seed:number,attempt:number,simple:boolean,bare=f
   for(let s=from;s<=to;s+=2.5){const w=wiggle*(Math.sin(k*s+phase)+.35*Math.sin(k*2.7*s+phase*1.7))*(calm?calm(s):1);pts.push({x:origin.x+ax*s+nx*w,z:origin.z+az*s+nz*w});}
   const o=origin.x*ax+origin.z*az,perp=pts.map(p=>p.z*ax-p.x*az);return {kind,points:pts,ax,az,p0:o+from,lo:Math.min(...perp),hi:Math.max(...perp),t0:o+(ends?ends[0]:from),t1:o+(ends?ends[1]:to),fade,halfWidth:half,floorHalf:kind==='river'?half*.55:kind==='cut'?half*.56:half*.32,depth,fluid};};
  /** Lays a deck across a channel at point index i, perpendicular to the local direction. */
- const bridge=(ch:Channel,i:number,over=false)=>{const pts=ch.points,a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],dir=Math.atan2(b.z-a.z,b.x-a.x),angle=dir+Math.PI/2,p=pts[i],span=ch.halfWidth+.5,half=span+3.2,c0=Math.cos(angle),s0=Math.sin(angle);
+ const bridge=(ch:Channel,i:number,over=false,wide=false)=>{const halfWidth=wide?BRIDGE_WIDE_HALF_WIDTH:BRIDGE_HALF_WIDTH;const pts=ch.points,a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],dir=Math.atan2(b.z-a.z,b.x-a.x),angle=dir+Math.PI/2,p=pts[i],span=ch.halfWidth+.5,half=span+3.2,c0=Math.cos(angle),s0=Math.sin(angle);
   for(const end of [-1,1])if(!inside(p.x+c0*(half+9)*end,p.z+s0*(half+9)*end,3))return false;
-  if(L.bridges.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<Math.max(o.half,o.halfWidth)+Math.max(half,BRIDGE_HALF_WIDTH)+14))return false;
-  L.bridges.push({x:p.x,z:p.z,angle,half,halfWidth:BRIDGE_HALF_WIDTH,h0:baseShape(L,p.x-c0*half,p.z-s0*half),h1:baseShape(L,p.x+c0*half,p.z+s0*half),span,over});
+  if(L.bridges.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<Math.max(o.half,o.halfWidth)+Math.max(half,halfWidth)+14))return false;
+  L.bridges.push({x:p.x,z:p.z,angle,half,halfWidth,h0:baseShape(L,p.x-c0*half,p.z-s0*half),h1:baseShape(L,p.x+c0*half,p.z+s0*half),span,over});
   // Keep both approaches clear of other landforms.
-  for(const end of [-1,1])hard.push({x:p.x+c0*(half+6)*end,z:p.z+s0*(half+6)*end,r:BRIDGE_HALF_WIDTH+3.7});return true;};
+  for(const end of [-1,1])hard.push({x:p.x+c0*(half+6)*end,z:p.z+s0*(half+6)*end,r:halfWidth+3.7});return true;};
  if(!bare){
   // The main gorge or river runs corner to corner between the bases; only bridges cross it.
   const diag=Math.PI/4,nxm=-Math.sin(diag),nzm=Math.cos(diag);
@@ -194,7 +203,8 @@ function tryLayout(style:number,seed:number,attempt:number,simple:boolean,bare=f
    const main=channel(river?'river':'gorge',diag,{x:nxm*offset,z:nzm*offset},-320,320,half,river?3:pick(6,8.5),river?t.riverFluid:t.gorgeFluid,pick(4,10),0,undefined,s=>1-smooth((Math.abs(s)-120)/60));
    if(!bases.every(b=>pathDistance(b.x,b.z,main)>half+16))return null;{L.channels.push(main);L.features.push(main.kind);
     const four=!simple&&R()<.5,slots=four?[pick(-88,-72),pick(-42,-26),pick(22,40),pick(70,86)]:[pick(-78,-58),pick(-12,12),pick(58,78)];
-    for(const s of slots)bridge(main,Math.round((s+320)/2.5));
+    // The crossings nearest the middle of the map are the wide ones.
+    slots.forEach((s,n)=>bridge(main,Math.round((s+320)/2.5),false,n>0&&n<slots.length-1));
     for(const p of main.points)if(inside(p.x,p.z,-10))hard.push({x:p.x,z:p.z,r:half});
     // A tributary of the other kind joins it from one flank.
     if(!simple&&R()<t.tributary){const side=R()<.5?1:-1,s0=(R()<.5?-1:1)*pick(38,66),junction=main.points[Math.round((s0+320)/2.5)],kind=main.kind==='gorge'?'river':'gorge',tHalf=pick(5.4,6.6);
@@ -255,7 +265,7 @@ function tryLayout(style:number,seed:number,attempt:number,simple:boolean,bare=f
  for(let n=0;n<3;n++){const s=[-58,0,58][n],side=(n+(R()<.5?0:1))%2?1:-1;let cx=s*Math.SQRT1_2,cz=s*Math.SQRT1_2;
   if(main){const p=main.points[Math.round((s+320)/2.5)];cx=p.x-Math.SQRT1_2*side*(main.halfWidth+11);cz=p.z+Math.SQRT1_2*side*(main.halfWidth+11);}
   const p=place(cx,cz,10,5.5,7);if(!p)return null;L.capture.push(p);}
- for(const [cx,cz] of [[-40,14],[38,-6],[-8,40],[6,-38],[-62,-30],[60,32],[-28,-66],[30,66]]){const p=place(cx,cz,10,2.2,3);if(!p)return null;L.pickups.push(p);}
+ for(const [cx,cz] of PICKUP_SPOTS){const p=place(cx,cz,10,2.2,3);if(!p)return null;L.pickups.push(p);}
  {const p=place(pick(-24,24),pick(-24,24),14,2.6,2.5);if(!p)return null;L.barrels.push(p,{x:p.x+3,z:p.z});taken.push({x:p.x+3,z:p.z,r:1.2});if(!open(p.x+3,p.z,1.2))return null;}
  const charge=place(0,0,14,2.5,3);if(!charge)return null;L.charge=charge;
  // Cover: large generated rock outcrops or container stacks on open ground.
