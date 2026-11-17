@@ -79,6 +79,9 @@ export const weaponCosts:{parts:Parts;credits:number}[]=[
  [10,0,0,100],[15,0,0,150],[20,2,0,200],[30,4,0,300],[40,6,1,400],[50,8,1,500],[60,12,2,650],[75,16,3,800],[90,20,4,1000],[110,25,6,1200]
 ].map(([common,precision,core,credits])=>({parts:{common,precision,core},credits}));
 export const WEAPON_MAX=10;
+/** Decimals that keep a per-level gain visible: whole numbers for steps of 1+, one decimal from 0.1, else two. */
+export const statDigits=(step:number)=>Math.abs(step)>=1?0:Math.abs(step)>=.1?1:2;
+export const statText=(value:number,step:number)=>value.toFixed(statDigits(step));
 export const weaponDamage=(level:number)=>1+.04*Math.max(0,Math.min(WEAPON_MAX,level));
 export const weaponReload=(level:number)=>level>=3?.94:1;
 export const weaponRange=(level:number)=>level>=6?1.5:0;

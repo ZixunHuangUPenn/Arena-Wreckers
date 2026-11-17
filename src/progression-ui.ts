@@ -1,4 +1,5 @@
 import {tr} from './i18n';
+import {assetPath} from './paths';
 import {levelProgress,levelReward,rewardLines,MAX_LEVEL,partKinds,partNames,partShort,partColors,taskDef,REROLL_COST,achievements,masteryProgress,masteryReward,skillMods,carLabel,challenges,goalText,starMilestones,seasonOf,seasonNames,seasonTier,seasonReward,SEASON_TIERS,SEASON_TIER_XP,titleName,FEATURED_DROP,carUnlockLevel,modeUnlockLevel,arenaUnlockLevel,type Parts,type LevelReward} from './progression';
 import {modeNames,arenas,type ProfileStore,type RewardReport} from './profile';
 // Menu markup for everything progression adds: the top-bar rank, the account details page, tasks, achievements,
@@ -53,7 +54,7 @@ export function challengeBoard(store:ProfileStore){const d=store.data,total=stor
  const head=`<div class="star-head"><div><small>CHALLENGES</small><strong>${tr('挑战关卡','Challenges')}</strong><span>${tr('每关 3 颗星：获胜得 1 星，完成额外目标各得 1 星。每颗新星 ¢100。','3 stars each: a win earns one, each extra goal one more. ¢100 per new star.')}</span></div><div class="star-total"><b>★ ${total}</b><small>/ ${challenges.length*3}</small></div></div>
  <div class="star-road">${starMilestones.map(m=>`<span class="${total>=m.stars?'on':''}"><b>★ ${m.stars}</b>${rewardChips(m.reward)}</span>`).join('')}</div>`;
  const cards=challenges.map((c,i)=>{const open=store.challengeOpen(i),stars=d.stars[i],why=store.level<c.level?tr(`LEVEL ${c.level} 开放`,`Opens at LEVEL ${c.level}`):i>0&&d.stars[i-1]===0?tr('先通关上一关','Clear the previous one first'):c.car!==undefined&&!store.carUnlocked(c.car)?tr(`需要解锁 ${carLabel[c.car]}`,`Needs ${carLabel[c.car]}`):'';
-  return `<div class="challenge-card${open?'':' locked'}${stars===3?' perfect':''}"><img src="" data-arena-img="${c.arena}" alt="" loading="lazy" draggable="false"/><div class="ch-num">${String(i+1).padStart(2,'0')}</div><div class="ch-body"><strong>${c.name}</strong><small>${modeNames[c.mode as keyof typeof modeNames]} · ${arenas[c.arena].name} · ${[tr('轻松','Easy'),tr('标准','Normal'),tr('挑战','Hard')][['easy','normal','hard'].indexOf(c.difficulty)]}${c.car!==undefined?` · ${carLabel[c.car]}`:''}</small>
+  return `<div class="challenge-card${open?'':' locked'}${stars===3?' perfect':''}"><img src="${assetPath('assets/')}maps/arena-${c.arena}.jpg" alt="" loading="lazy" draggable="false"/><div class="ch-num">${String(i+1).padStart(2,'0')}</div><div class="ch-body"><strong>${c.name}</strong><small>${modeNames[c.mode as keyof typeof modeNames]} · ${arenas[c.arena].name} · ${[tr('轻松','Easy'),tr('标准','Normal'),tr('挑战','Hard')][['easy','normal','hard'].indexOf(c.difficulty)]}${c.car!==undefined?` · ${carLabel[c.car]}`:''}</small>
   <ul>${c.goals.map((g,k)=>`<li class="${stars>k?'on':''}"><i>★</i>${goalText(g)}</li>`).join('')}</ul></div><div class="ch-foot">${open?`<button class="primary-button small" data-challenge="${i}">${stars?tr('再次挑战','Replay'):tr('开始挑战','Start')} ▶</button>`:`<span class="lock-tag">🔒 ${why}</span>`}</div></div>`;}).join('');
  return head+`<div class="challenge-grid">${cards}</div>`;}
 
@@ -61,7 +62,7 @@ export function saveBackup(){return `<div class="save-backup"><button class="met
 
 /** Match report rewards: rating, credits, XP, parts, level bar, then level-ups, unlocks, tasks, season and stars. */
 export function reportRewards(store:ProfileStore,r:RewardReport){const p=levelProgress(store.data.xp),cards:string[]=[];
- for(const {level,reward} of r.levelRewards){const lines=rewardLines(reward as LevelReward);cards.push(`<div class="levelup-card"><small>LEVEL UP</small><b>LEVEL ${level}</b><ul>${lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul></div>`);}
+ for(const {level,reward} of r.levelRewards){const lines=rewardLines(reward as LevelReward);cards.push(`<span class="levelup-card"><b>LEVEL UP · LV ${level}</b>${lines.map(esc).join(' · ')}</span>`);}
  const extras:string[]=[];
  if(r.challenge)extras.push(`<span class="report-note star">${'★'.repeat(r.challenge.stars)}${'☆'.repeat(3-r.challenge.stars)} ${challenges[r.challenge.id].name}${r.challenge.gained?tr(` · 新星 +${r.challenge.gained}`,` · +${r.challenge.gained} new`):''}</span>`);
  for(const id of r.tasksDone){const def=taskDef(id);if(def)extras.push(`<span class="report-note task">✓ ${def.name}</span>`);}
@@ -71,4 +72,4 @@ export function reportRewards(store:ProfileStore,r:RewardReport){const p=levelPr
  return `<div class="reward-row"><span class="grade grade-${r.rating}" title="${tr('评级','Rating')}">${r.rating}</span><span class="gain coins">${creditIcon}<b>+${r.credits}</b>${tr('信用点','Credits')}</span><span class="gain xp"><i>✦</i><b>+${r.xp}</b>${tr('经验','XP')}${r.firstWin?`<em class="x2">${tr('首胜 ×2','First win ×2')}</em>`:''}</span></div>
  <div class="reward-parts"><small>${tr('零件','Parts')}</small>${partsInline(r.parts)||`<span class="part-chip">—</span>`}<em>${tr(`战场回收 ${r.salvage.common+r.salvage.precision+r.salvage.core} · 评级补给 ${bonus.common+bonus.precision+bonus.core}`,`Salvaged ${r.salvage.common+r.salvage.precision+r.salvage.core} · Rating bonus ${bonus.common+bonus.precision+bonus.core}`)}</em></div>
  <span class="level"><small>${tr(`等级 ${p.level}`,`Level ${p.level}`)}<em>${p.level>=MAX_LEVEL?'MAX':`${p.into} / ${p.need}`}</em></small><span class="level-track"><i style="width:${(p.ratio*100).toFixed(1)}%"></i></span></span>
- ${extras.length?`<div class="report-notes">${extras.join('')}</div>`:''}${cards.length?`<div class="levelup-cards">${cards.join('')}</div>`:''}`;}
+ ${extras.length||cards.length?`<div class="report-notes">${cards.join('')}${extras.join('')}</div>`:''}`;}
