@@ -70,3 +70,11 @@
 @keyframes aw-finale-hint{0%,45%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
 .portrait .finale-banner>div{margin-top:230px;padding:14px 30px 16px}.portrait .finale-banner strong{font-size:46px}
 #app.finale #threat,#app.finale #hitDirection,#app.finale #reticle,#app.finale #notice{opacity:0}
+
+/* Objective countdown under the top edge: capture timer, closing circle. */
+#gameUI #objectiveTimer{position:absolute;left:50%;top:92px;transform:translateX(-50%);padding:5px 13px;border-radius:9px;background:var(--glass);border:1px solid #ffffff1c;box-shadow:0 8px 20px #0007;font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--ink);white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums}
+#gameUI #objectiveTimer:empty{display:none}
+#gameUI #objectiveTimer.blue{color:#7cc4ff;border-color:#3fb8ff66}
+#gameUI #objectiveTimer.red{color:#ff8a78;border-color:#ff5a4480}
+#gameUI #objectiveTimer.amber{color:var(--amber-2);border-color:#f2b64d66}
+.portrait #gameUI #objectiveTimer{top:176px}

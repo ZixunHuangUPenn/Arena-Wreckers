@@ -52,3 +52,10 @@ export function localDrivers(source:Pick<Storage,'getItem'|'key'|'length'>|undef
  try{for(let i=0;i<source.length;i++){const key=source.key(i);if(!key?.startsWith('arena-driver:'))continue;const name=key.slice(13);if(!name.trim())continue;const d=new ProfileStore({getItem:k=>source.getItem(k),setItem(){}},key).data;rows.push({name:name.slice(0,24),wins:d.wins,games:d.games,kills:d.kills,bestWave:d.bestWave,best:Number(source.getItem('arena-best:'+name))||0});}}catch{}
  return rows.sort((a,b)=>b.wins-a.wins||b.best-a.best||b.games-a.games||a.name.localeCompare(b.name));
 }
+
+/** Upgrade tuning: each level adds this share of the base value (armour, top speed, damage per shot). */
+export const upgradeGain=[.08,.03,.08];
+/** Decimals needed so that one upgrade level always changes the number shown (a small per-level step is never rounded away). */
+export function statDigits(step:number){return step>=1?0:step>=.1?1:2;}
+/** The value an upgrade card shows for stat `kind` (0 armour, 1 top speed, 2 damage per shot) at `level`. */
+export function upgradeText(kind:number,base:number,level:number){return (base*(1+level*upgradeGain[kind])).toFixed(statDigits(base*upgradeGain[kind]));}
