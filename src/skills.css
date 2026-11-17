@@ -33,3 +33,7 @@ html[data-play-mode=mobile] #gameUI #skillStatus{bottom:auto;top:58px;font-size:
 .portrait #gameUI #skillStatus{top:118px;bottom:auto}
 #gameUI #skill.active{border-color:#fff;box-shadow:0 0 14px #ffe9a8;filter:brightness(1.35)}
 .damage-number.crit{color:#ffe66b;font-size:26px;text-shadow:0 0 8px #ff9a2e}
+#gameUI #skill{touch-action:none}
+#gameUI #skill.aiming{border-color:#fff;box-shadow:0 0 0 3px #ffffff33,0 0 16px #ffe9a8;filter:brightness(1.3);z-index:2}
+#gameUI #skillStatus[data-state=aiming]{box-shadow:0 0 16px -2px var(--accent)}
+#gameUI #skillStatus[data-state=aiming] em{color:#fff}

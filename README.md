@@ -8,7 +8,7 @@ Choose a vehicle, use its distinct weapon and skill, optionally upgrade armor/en
 
 - Touch: left stick drives toward a screen direction; right stick independently aims and shoots. A center tap uses aim assist for visible opponents. Vehicle skill is above the right stick.
 - Optional "stick + auto-aim" touch layout: left stick drives, the turret locks on to the nearest visible enemy, the right side only fires and casts skills. (The old wheel layout was removed; saves that used it move to this layout.)
-- Desktop: WASD, pointer aim, Space fire, Q skill, Escape pause.
+- Desktop: WASD, pointer aim, Space fire, Q skill (hold Q to aim the hook or barrage at the pointer, release to cast, right-click to cancel), Escape pause.
 - The game pauses when backgrounded. Progress, settings and milestones are stored in this browser's localStorage.
 
 Modes: six-wave solo survival with bosses; 3v3 respawn deathmatch; capture points; single-life elimination; capture the flag; recover/hold charge.
@@ -126,6 +126,8 @@ Verification: `npm test` and `npm run build` pass; the three steps were screensh
 ## Vehicle kits
 
 Each car has one active skill (Q or the skill button) and one passive. Rules and numbers live in `src/skills.ts`, the dome, cable and lightning meshes in `src/skill-effects.ts`. The vehicle page shows the full write-up beside the car.
+
+The grapple hook and the creeping barrage can be aimed: drag the skill button to choose the direction (and, for the barrage, the distance), then release to cast; drag back onto the button to cancel, or just tap for the automatic target. On a computer hold Q and point with the mouse. The drag maths and the ground indicator live in `src/skill-aim.ts`; the AI still casts through `activateSkill(car)` with no aim.
 
 | Car | Role | Active | Passive |
 |---|---|---|---|
