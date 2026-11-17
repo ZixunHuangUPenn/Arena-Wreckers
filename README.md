@@ -32,7 +32,10 @@ Requires a supported Node.js release. Run `npm install`, `npm run dev`, `npm tes
 - `src/terrain.ts`: seeded terrain library (gorges, rivers, plateaus, lakes, waterfalls, hills, ring arenas), objective placement and the baked heightfield shared by graphics, driving and AI.
 - `src/bridge.ts`: bridge decks, deck/ground collision and the bridge and ring-wall meshes.
 - `src/water.ts`: water, lava, molten metal, toxic pools, frozen lakes and waterfalls.
-- `src/profile.ts`: validated local save data, upgrades, rewards and configuration.
+- `src/profile.ts`: validated local save data (v3, migrates v1/v2), upgrades, rewards, unlocks, tasks, achievements, mastery, challenges, season and save codes.
+- `src/progression.ts`: progression numbers and rules only: level curve, unlock levels, weapon upgrade costs, salvage drops, task pools, achievements, mastery, 20 challenges, offline season, save-code format.
+- `src/progression-ui.ts` and `src/progression.css`: account page, tasks, mastery, challenges and match-report reward markup.
+- `src/salvage.ts`: salvage crates dropped by enemy wrecks and the mortar's fire patches.
 - `src/interface.ts` and `src/interface.css`: menu shell and rendered vehicle/weapon previews.
 - `vite.config.ts`: static build and offline cache generation.
 
@@ -175,3 +178,12 @@ AI drivers use the same skills. Effects were checked in software rendering only,
   - the winning side keeps driving and can fire and use skills, but nobody takes damage; allied AI spins donuts and fireworks go off over the winners;
   - on a defeat the camera moves to the nearest surviving winner and the player's car rolls to a stop.
 - Then the result screen appears as before. This applies to every mode. Slow-motion pacing has not been checked on a real device.
+
+## Build 23 — Progression and unlocks
+
+- **Two currencies.** Credits (¢, the old "parts" balance) pay for armour, engine, paint and upgrade fees. Parts now come from battle: every enemy wreck leaves a salvage crate (grey common, blue precision, gold core) that lasts 12 s; drive over it to collect. Elites and bosses carry more, Hard pays ×1.3, and half of the crates left on the field come back at the end. A match rating (C/B/A/S) adds a bonus.
+- **Weapon levels 1–10** cost parts plus credits (500 common / 93 precision / 17 core / ¢5300 in total). Each level adds 4% damage (same +40% ceiling as before); level 3 reload −6%, 5 unlocks the Rapid variant, 6 range +1.5 m, 9 a signature mod per weapon, 10 a gold barrel. Old saves keep their damage (old level n becomes 2n).
+- **Player level** follows 150 + 50·L XP per level up to 30, with damage, objective, difficulty and first-win-of-the-day bonuses. Every level has a reward, granted automatically. Only Kestrel and Grapnel are open at the start; Arclight opens at level 4, Bombard at 8, Bulwark at 12. Survival, Team deathmatch and Capture points plus Sandstone are open at the start; levels 2, 3 and 4 each add one mode and one arena. A locked car can be test-driven once a day. Existing players keep what they used.
+- **Top bar** shows credits and a level badge with an unnumbered progress bar; tapping it opens Account details with the exact numbers, parts, coming level rewards, season, tasks, achievements, vehicle mastery, titles and a save-code backup.
+- **Daily and weekly tasks** (level 3+), **33 tiered achievements** (old milestones keep their ids), **vehicle mastery** 1–10 (cooldown −1 s, +5% hull, Heavy variant, and a choice of two skill mods at 10; perks switch on at level 10), **20 challenges** with 3 stars each and star milestones, and an **offline six-week season** with 30 tiers and a featured arena that drops double common parts.
+- **Leaderboards / online:** the game is a static site with no server, so rankings stay on this device (plus the existing manual GitHub post). Shared online leaderboards, cloud saves and co-op need a backend and are not part of this build; the save code covers moving progress between devices.
