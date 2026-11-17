@@ -35,6 +35,8 @@ t.setArena(3);t.reset();for(const c of t.cars)if(c!==p)c.alive=false;{const L=mo
   let lowest=Infinity;for(let i=0;i<300;i++){t.moveCar(p,1/60,0,1);const deck=modules.deckHeight(p.mesh.position.x,p.mesh.position.z);if(deck!==null)lowest=Math.min(lowest,p.mesh.position.y-deck);}
   const u=(p.mesh.position.x-b.x)*c+(p.mesh.position.z-b.z)*s;assert(u*dir>b.half,'crossed bridge');assert(lowest>-.2,'stayed on the deck');}
  // Steering into the railing while crossing slides along it rather than sticking.
+ // AI cars treat gorges and rivers as walls; the rim and routing checks below drive the player car as one.
+ p.player=false;
  const original=p.loadout;for(const loadout of [0,1,2,3,4])for(const steer of [1,-1]){t.loadout(loadout);t.reset();for(const c of t.cars)if(c!==p)c.alive=false;const b=L.bridges[0],c=Math.cos(b.angle),s=Math.sin(b.angle),sx=b.x-c*(b.half+2),sz=b.z-s*(b.half+2);p.mesh.position.set(sx,modules.terrainHeight(sx,sz),sz);p.angle=Math.atan2(-c,-s);p.speed=0;t.impacts.clear();const path=[];
   // Crash into the railing / rim on purpose, then drive like a player towards the far bank.
   const tx=b.x+c*(b.half+4),tz=b.z+s*(b.half+4),route=[[b.x-c*(b.half+1),b.z-s*(b.half+1)],[b.x,b.z],[tx,tz]];let arrived=-1,reverse=0,leg=0;
@@ -50,6 +52,10 @@ t.setArena(3);t.reset();for(const c of t.cars)if(c!==p)c.alive=false;{const L=mo
  for(const side of [1,-1]){const q2=ch.points.find(pt=>Math.abs(pt.x)<40&&Math.abs(pt.z)<40&&[1,-1].every(k=>{const b=bank(pt,k*(ch.halfWidth+5));return clearSpot(b.x,b.z);})),s=bank(q2,side*(ch.halfWidth+5)),g=bank(q2,-side*(ch.halfWidth+5)),sx=s.x,sz=s.z,gx=g.x,gz=g.z;p.mesh.position.set(sx,modules.terrainHeight(sx,sz),sz);p.angle=Math.atan2(nx*side,nz*side);p.speed=0;t.impacts.clear();t.routes.clear();let reached=false,stuck=0,reverse=0,last=p.mesh.position.clone();
   for(let i=0;i<60*60&&!reached;i++){const wp=t.waypoint(p,1/60,gx,gz),delta=modules.angleDelta(Math.atan2(p.mesh.position.x-wp.x,p.mesh.position.z-wp.y),p.angle);let throttle=Math.abs(delta)>1.9?-.4:1;if(i%30===0){stuck=p.mesh.position.distanceTo(last)<.4?stuck+1:0;last=p.mesh.position.clone();if(stuck>1){reverse=.65;stuck=0;t.routes.clear();}}if(reverse>0){reverse-=1/60;throttle=-.55;}t.moveCar(p,1/60,Math.max(-1,Math.min(1,-delta*1.8)),throttle);reached=Math.hypot(p.mesh.position.x-gx,p.mesh.position.z-gz)<4;}
   assert(reached,'AI crossed the gorge by a bridge');}
+ p.player=true;
+ // The driver has no invisible wall: going head-on over the rim is fatal, while driving along a bridge deck stays safe.
+ {t.reset();for(const c of t.cars)if(c!==p)c.alive=false;p.invulnerable=0;const s=bank(q,ch.halfWidth+6);p.mesh.position.set(s.x,modules.terrainHeight(s.x,s.z),s.z);p.angle=Math.atan2(nx,nz);p.speed=0;t.impacts.clear();for(let i=0;i<360&&p.alive;i++)t.moveCar(p,1/60,0,1);assert(!p.alive,'fell into the gorge');}
+ {t.reset();for(const c of t.cars)if(c!==p)c.alive=false;const b=L.bridges[0];p.mesh.position.set(b.x,modules.deckHeight(b.x,b.z),b.z);p.angle=Math.atan2(-Math.cos(b.angle),-Math.sin(b.angle));p.speed=0;t.impacts.clear();for(let i=0;i<240;i++)t.moveCar(p,1/60,0,1);assert(p.alive,'driving along the deck is safe');}
 }
 t.setArena(0);t.reset();console.log('PASS bridge crossings both ways on every deck / sliding along railings / gorge rim blocks / no car inside impassable ground');
 const openLane=()=>{const free=(px,pz)=>!(modules.terrainBlocked(px,pz)||modules.fluidSurface(px,pz)||modules.deckHeight(px,pz)!==null||t.solids.some(o=>Math.abs(px-o.x)<o.hx+1&&Math.abs(pz-o.z)<o.hz+1)||t.cars.some(c=>c!==p&&c.alive&&Math.hypot(px-c.mesh.position.x,pz-c.mesh.position.z)<4));for(const [fx,fz,angle] of [[0,-1,0],[-1,0,Math.PI/2]])for(let a=-40;a<=40;a+=2)for(let b=46;b>=-4;b-=2){const x=fz?a:b,z=fz?b:a;let ok=true;for(let d=0;d<=50&&ok;d+=1)for(const off of [-2,0,2])if(!free(x+fx*d+(fz?off:0),z+fz*d+(fz?0:off)))ok=false;if(ok)return [x,z,angle];}throw new Error('no open lane');};
