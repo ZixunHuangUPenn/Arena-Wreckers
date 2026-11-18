@@ -129,6 +129,8 @@ Each car has one active skill (Q or the skill button) and one passive. Rules and
 
 The grapple hook and the creeping barrage can be aimed: drag the skill button to choose the direction (and, for the barrage, the distance), then release to cast; drag back onto the button to cancel, or just tap for the automatic target. On a computer hold Q and point with the mouse. The drag maths and the ground indicator live in `src/skill-aim.ts`; the AI still casts through `activateSkill(car)` with no aim.
 
+Weapon aiming: auto-aim prefers the enemy the gun points at (or the aim stick, the mouse, or the driving direction), keeps a sticky lock instead of jumping between cars, and leads moving targets so rockets and mortar shells land where the car will be. Tap an enemy to lock it on touch screens (tap open ground to hand the choice back); press Tab on a computer to step through targets. A dashed ground line (a fan for the shotgun) shows where shots go and stops at cover, rockets and mortars show their burst circle, mortars also show the arc, and hit markers confirm hits, crits and wrecks. The maths (intercept solver, target scoring, sticky lock, measured velocities) is in `src/targeting.ts` and the AI uses the same solver; the guide is `src/aim-guide.ts`.
+
 | Car | Role | Active | Passive |
 |---|---|---|---|
 | Kestrel 幽隼 | Stealth assassin | Cloak: unseen beyond 6 m for 5 s, firing breaks it and grants ×1.5 damage for 1.5 s | Backstab: +30% from behind |
