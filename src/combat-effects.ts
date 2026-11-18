@@ -3,6 +3,7 @@
 // mesh, so a full-screen firefight costs three draw calls. Fixed caps keep endless matches bounded.
 import * as THREE from 'three';
 import {terrainHeight} from './terrain';
+import {deckHeight} from './bridge';
 import {tileNoise} from './environment';
 
 const MAX_PARTICLES=640,MAX_DECALS=220;
@@ -72,6 +73,13 @@ export class CombatEffects{
  ring(x:number,z:number,size:number,grow:number,life:number,color:[number,number,number],alpha=.9){this.decal(2,x,z,size,Math.random()*6.28,life,color,alpha,grow);}
  /** Short light flash without an explosion. */
  glint(p:THREE.Vector3,peak:number,life:number){this.flash(p,peak,life);}
+ /** Tyre smoke and dark rubber from a sliding car; `slip` is its sideways speed in m/s. */
+ skid(p:THREE.Vector3,angle:number,slip:number,onDeck:boolean){const k=Math.min(1,slip/7);for(const side of [-1,1]){const x=p.x+Math.sin(angle)*1.25+Math.cos(angle)*side*.9,z=p.z+Math.cos(angle)*1.25-Math.sin(angle)*side*.9,y=onDeck?p.y:terrainHeight(x,z);
+  this.decal(0,x,z,.85,angle,5,[.02,.018,.015],.45+.45*k,0,onDeck?p.y+.04:null);
+  if(Math.random()<.4+.6*k)this.emit(SMOKE,{x,y:y+.25,z},[(Math.random()-.5)*1.2,.6+Math.random()*.6,(Math.random()-.5)*1.2],.9+Math.random()*.6,.7,2.6,[.5,.49,.47],[.68,.67,.65],.18+.25*k,1.4);}}
+ /** Dust thrown up where a car lands from a jump; power 0..1. */
+ landing(p:THREE.Vector3,power:number){const d=this.dust;this.ring(p.x,p.z,1.2,5+8*power,.45,[d.r,d.g,d.b],.25+.45*power);
+  for(let i=0,n=6+Math.round(12*power);i<n;i++){const a=Math.random()*Math.PI*2,v=2+Math.random()*4*(.5+power);this.emit(SMOKE,{x:p.x+Math.cos(a)*1.2,y:p.y+.2,z:p.z+Math.sin(a)*1.2},[Math.cos(a)*v,.5+Math.random()*1.2,Math.sin(a)*v],.8+Math.random()*.6,.6,2.4,[d.r*.85,d.g*.85,d.b*.85],[d.r,d.g,d.b],.3+.2*power,2.2);}}
  trail(p:THREE.Vector3){this.emit(SMOKE,p,[(Math.random()-.5)*.6,.5+Math.random()*.4,(Math.random()-.5)*.6],.7+Math.random()*.4,.35,1.25,[.62,.6,.58],[.8,.79,.77],.42,1.2);this.emit(FIRE,p,[0,0,0],.1,.7,.25,[4,2.2,.6],[2,.4,.05],1);}
  update(dt:number,cars:CarLike[]){
   if(dt>0){
@@ -82,7 +90,7 @@ export class CombatEffects{
    if(this.dustClock>=.07){this.dustClock=0;for(const c of cars){if(!c.alive||!c.mesh.visible)continue;const pos=c.mesh.position,health=c.hp/c.maxHp;
     if(health<.4)this.emit(SMOKE,{x:pos.x,y:pos.y+1.5,z:pos.z},[(Math.random()-.5)*.8,1.6+Math.random(),(Math.random()-.5)*.8],1+Math.random()*.6,.6,2,[.08,.08,.08],[.25,.25,.25],health<.2?.75:.5,.8);
     if(health<.2)this.emit(FIRE,{x:pos.x+(Math.random()-.5)*.6,y:pos.y+1.2,z:pos.z+(Math.random()-.5)*.6},[0,1.8+Math.random(),0],.3+Math.random()*.2,.7,.25,[4,2.2,.6],[1.6,.3,.04],1,1);
-    if(Math.abs(c.speed)<5)continue;const elevated=pos.y-terrainHeight(pos.x,pos.z)>1;
+    if(Math.abs(c.speed)<5)continue;const deck=deckHeight(pos.x,pos.z),elevated=deck!==null&&pos.y>deck-1.4;if(pos.y-(elevated?deck!:terrainHeight(pos.x,pos.z))>.5)continue;/* in the air: no marks */
     for(const side of [-1,1]){const x=pos.x+Math.sin(c.angle)*1.25+Math.cos(c.angle)*side*.9,z=pos.z+Math.cos(c.angle)*1.25-Math.sin(c.angle)*side*.9;this.decal(0,x,z,.62,c.angle,3.2,[.06,.05,.04],.5,0,elevated?pos.y+.04:null);
      if(Math.random()<.8)this.emit(SMOKE,{x,y:(elevated?pos.y:terrainHeight(x,z))+.2,z},[(Math.random()-.5)*1.4,.5+Math.random()*.8,(Math.random()-.5)*1.4],.7+Math.random()*.5,.5,1.9,[this.dust.r*.85,this.dust.g*.85,this.dust.b*.85],[this.dust.r,this.dust.g,this.dust.b],.26,1.6);}}}
   }
