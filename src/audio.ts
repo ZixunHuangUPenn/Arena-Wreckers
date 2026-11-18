@@ -153,6 +153,11 @@ export class GameAudio{
  /** Incoming airstrike whistle before the telegraphed impact. */
  whistle(x:number,z:number,seconds:number){if(!this.ready())return;const {distance,pan}=this.where(x,z);if(distance>55)return;try{this.tone({type:'sine',from:2100,to:700,level:.025*falloff(distance),length:Math.max(.3,seconds),pan,attack:.2,send:.2});}catch{}}
  pickup(heal:boolean){if(!this.ready())return;try{const t=this.ctx!.currentTime;(heal?[660,880,1100]:[440,660,990]).forEach((f,i)=>this.tone({at:t+i*.07,type:'triangle',from:f,level:.04,length:.18}));}catch{}}
+ /** Hit confirmation for the player's own shots: a dry tick for a hit, a bright double tick for a crit, a heavy clunk and ring for a wreck. */
+ hitConfirm(kind:'hit'|'crit'|'kill'){if(!this.ready())return;try{const t=this.ctx!.currentTime;
+  if(kind==='hit'){this.tone({type:'square',from:2300,to:1500,level:.018,length:.035});return;}
+  if(kind==='crit'){this.tone({type:'square',from:2600,to:1800,level:.022,length:.04});this.tone({at:t+.05,type:'triangle',from:3300,to:2500,level:.03,length:.08});return;}
+  this.tone({type:'sawtooth',from:180,to:55,level:.06,length:.22});this.tone({at:t+.04,type:'triangle',from:1320,level:.045,length:.4,send:.35});this.tone({at:t+.04,type:'sine',from:1980,level:.025,length:.35,send:.35});}catch{}}
  /** Short UI/score blip (kill confirm etc). */
  /** End-of-match sting: rising major arpeggio for a win, falling minor for a loss, two level notes for a draw. */
  fanfare(result:number){if(!this.ready())return;try{const t=this.ctx!.currentTime,notes=result>0?[523,659,784,1047,1319]:result<0?[392,311,262,196]:[440,440],step=result>0?.13:.24;notes.forEach((f,i)=>{const last=i===notes.length-1,length=last?.9:step*1.6;this.tone({at:t+i*step,type:'triangle',from:f,level:.07,length,send:.3,attack:.01});this.tone({at:t+i*step,type:'sawtooth',from:f/2,level:.022,length,send:.2,attack:.02});});}catch{}}

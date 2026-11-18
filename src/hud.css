@@ -107,3 +107,32 @@
 #app.portrait #gameUI #notice{top:188px}
 #app.portrait #gameUI #objectiveTimer{top:210px}
 #app.portrait #gameUI #bossHUD{top:236px}
+
+/* Weapon aiming: reticle on the predicted impact, lock brackets on the target, hit markers. */
+#gameUI #reticle{width:26px;height:26px;border:2px solid #ffffffb0;border-radius:50%;box-shadow:0 0 0 1px #0006,0 0 10px #0005;transition:width .12s,height .12s,border-color .12s}
+#gameUI #reticle::after{content:'';position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#fff;box-shadow:0 0 4px #000a}
+#gameUI #reticle.locked{width:20px;height:20px;border-color:#ffb24d;box-shadow:0 0 0 1px #0006,0 0 12px #ff9c2e99}
+#gameUI #reticle.locked::after{background:#ffcf7d}
+#gameUI #lockMarker{display:none;position:absolute;left:0;top:0;width:58px;height:46px;pointer-events:none;transform-origin:50% 50%;--c:#ffffff80}
+#gameUI #lockMarker.on{--c:#ffb24d}
+#gameUI #lockMarker.pinned{--c:#ff6a3d}
+#gameUI #lockMarker i{position:absolute;width:12px;height:10px;border:0 solid var(--c);filter:drop-shadow(0 0 2px #000a)}
+#gameUI #lockMarker i:nth-child(1){left:0;top:0;border-width:3px 0 0 3px}
+#gameUI #lockMarker i:nth-child(2){right:0;top:0;border-width:3px 3px 0 0}
+#gameUI #lockMarker i:nth-child(3){left:0;bottom:0;border-width:0 0 3px 3px}
+#gameUI #lockMarker i:nth-child(4){right:0;bottom:0;border-width:0 3px 3px 0}
+#gameUI #lockMarker span{position:absolute;left:100%;top:-2px;margin-left:5px;padding:1px 6px;border-radius:4px;background:#0b1520c0;color:var(--c);font-size:10px;font-weight:800;letter-spacing:.06em;white-space:nowrap}
+#gameUI #lockMarker.idle span{display:none}
+#gameUI #hitMarkers{position:absolute;inset:0;pointer-events:none}
+#gameUI .hit-mark{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;--c:#fff;--s:1}
+#gameUI .hit-mark b{position:absolute;left:-1.5px;top:-11px;width:3px;height:7px;border-radius:2px;background:var(--c);box-shadow:0 0 3px #000c;transform-origin:1.5px 11px;animation:aw-hit .32s ease-out forwards}
+#gameUI .hit-mark b:nth-child(1){--r:45deg}#gameUI .hit-mark b:nth-child(2){--r:135deg}#gameUI .hit-mark b:nth-child(3){--r:225deg}#gameUI .hit-mark b:nth-child(4){--r:315deg}
+#gameUI .hit-mark.crit{--c:#ffd54a;--s:1.35}
+#gameUI .hit-mark.kill{--c:#ff4b3a;--s:1.8}
+#gameUI .hit-mark.kill b{animation-duration:.7s}
+#gameUI .hit-mark.kill::before{content:'';position:absolute;left:-18px;top:-18px;width:36px;height:36px;border:2px solid #ff6a4a;border-radius:50%;animation:aw-hit-ring .55s ease-out forwards}
+#gameUI .hit-mark em{position:absolute;left:17px;top:2px;font-style:normal;font-size:11px;font-weight:900;letter-spacing:.08em;color:var(--c);text-shadow:0 1px 3px #000;white-space:nowrap;animation:aw-hit-tag .7s ease-out forwards}
+@keyframes aw-hit{0%{transform:rotate(var(--r)) translateY(4px) scale(calc(var(--s)*1.5));opacity:1}35%{transform:rotate(var(--r)) translateY(-1px) scale(var(--s));opacity:1}100%{transform:rotate(var(--r)) translateY(-3px) scale(var(--s));opacity:0}}
+@keyframes aw-hit-ring{0%{transform:scale(.4);opacity:1}100%{transform:scale(1.6);opacity:0}}
+@keyframes aw-hit-tag{0%{transform:translateY(4px);opacity:0}20%{transform:none;opacity:1}75%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
+#app.finale #lockMarker,#app.finale #hitMarkers{opacity:0}
