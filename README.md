@@ -6,9 +6,10 @@ Browser-based single-player vehicular combat. Live build uses self-contained ass
 
 Choose a vehicle, use its distinct weapon and skill, optionally upgrade armor/engine/firepower, then choose a mode and arena. All opponents and teammates are AI.
 
-- Touch: left stick drives toward a screen direction; right stick independently aims and shoots. A center tap uses aim assist for visible opponents. Vehicle skill is above the right stick.
+- Touch: left stick drives toward a screen direction (hold it towards the tail to reverse), the Drift button beside it is the handbrake; right stick independently aims and shoots. A center tap uses aim assist for visible opponents. Vehicle skill is above the right stick.
 - Optional "stick + auto-aim" touch layout: left stick drives, the turret locks on to the nearest visible enemy, the right side only fires and casts skills. (The old wheel layout was removed; saves that used it move to this layout.)
-- Desktop: WASD, pointer aim, Space fire, Q skill (hold Q to aim the hook or barrage at the pointer, release to cast, right-click to cancel), Escape pause.
+- Desktop: WASD, Shift drift (handbrake), pointer aim, Space fire, Q skill (hold Q to aim the hook or barrage at the pointer, release to cast, right-click to cancel), Escape pause. Holding the key that points at the car's tail reverses; Settings can switch the keys to car-relative (W forward, S reverse, A/D steer).
+- Handling (`src/dynamics.ts`): each car has its own mass and tyre grip, and the ground changes grip (decks and foundry plate grip best, sand and snow less, frozen lakes very little). Steering hard at speed lets the tail step out; the handbrake holds a drift that charges the skill. Slopes slow you uphill and speed you up downhill, crests and bridge ends throw the car into the air, and car-to-car hits trade momentum by mass.
 - The game pauses when backgrounded. Progress, settings and milestones are stored in this browser's localStorage.
 
 Modes: six-wave solo survival with bosses; 3v3 respawn deathmatch; capture points; single-life elimination; capture the flag; recover/hold charge.
