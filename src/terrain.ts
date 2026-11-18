@@ -129,7 +129,7 @@ function bake(L:Layout){
  for(let j=0;j<GRID;j++)for(let i=0;i<GRID;i++){const x=-HALF+i*CELL,z=-HALF+j*CELL,k=j*GRID+i;const ds=channelDistances(L,x,z);heights[k]=shapeHeight(x,z,L,ds);const f=fluidAt(L,x,z,ds);if(f&&f.level>heights[k]-.02){fluidLevel[k]=f.level;fluidKind[k]=fluidNames.indexOf(f.fluid)+1;}
   // Gorge and river floors are impassable; a sunken road's floor is a road.
   for(let c=0;c<ds.length;c++){const ch=L.channels[c];if(ch.kind!=='cut'&&ds[c]<ch.floorHalf+1.2){floorField[k]=1;break;}}
-  // A dry gorge is a shallow ravine rather than an abyss: small cars may drive down into it and climb out.
+  // A dry gorge is a shallow ravine rather than an abyss: its floor is not lethal, and every car is walled off at the rim.
   if(!fluidKind[k])for(let c=0;c<ds.length;c++){const ch=L.channels[c];if(ch.kind==='gorge'&&!ch.fluid&&ds[c]<ch.halfWidth+1.5){pitField[k]=1;break;}}}
  const last=GRID-1;
  for(let j=0;j<GRID;j++){const j0=j<2?0:j-2,j1=j>last-2?last:j+2;for(let i=0;i<GRID;i++){const k=j*GRID+i,i0=i<2?0:i-2,i1=i>last-2?last:i+2;
@@ -146,8 +146,6 @@ function dilateHazard(h:Uint8Array){let front:number[]=[];for(let k=0;k<h.length
  return h;}
 /** Lethal ground: 2 on a gorge or river floor or in deep liquid, 1 on the bank leading into it, 0 elsewhere. */
 export function terrainHazard(x:number,z:number){if(Math.abs(x)>HALF||Math.abs(z)>HALF)return 0;return hazardField[index(x,z)];}
-/** 1 inside a dry gorge (floor and walls): blocked for big cars, open to small ones, and never lethal. */
-export function terrainPit(x:number,z:number){if(Math.abs(x)>HALF||Math.abs(z)>HALF)return 0;return pitField[index(x,z)];}
 /** Ground height, interpolated on exactly the triangles the ground mesh renders. */
 export function terrainHeight(x:number,z:number){
  const gx=clamp((x+HALF)/CELL,0,GRID-1.0001),gz=clamp((z+HALF)/CELL,0,GRID-1.0001),i=Math.floor(gx),j=Math.floor(gz),fx=gx-i,fz=gz-j,k=j*GRID+i;

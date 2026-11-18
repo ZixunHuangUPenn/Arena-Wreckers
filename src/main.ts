@@ -29,7 +29,7 @@ import {overlaps,segmentHit,type Rect} from './physics';
 import {terrainHeight,setTerrain} from './terrain';
 import {bakeTerrainMap,layoutFeatures} from './minimap';
 import {Match,capturePoints,CAPTURE_RADIUS,ZONE_TIME,ZONE_DPS,damageShares,type Mode} from './match';
-import {screenHeading,angleDelta,vehicles,canDive} from './handling';
+import {screenHeading,angleDelta,vehicles} from './handling';
 import {fitGameLayout,projectToGameUI} from './layout';
 import {hasSight,projectileStep,sightRange} from './visibility';
 import {aiTuning,aiAim,difficultyTuning} from './difficulty';
@@ -218,9 +218,9 @@ const solids:Rect[]=obstacles.map(o=>({x:o.x,z:o.z,hx:o.w/2,hz:o.d/2,angle:0,min
 solids.push(...bridgeSolids);solids.push(...arenaWalls());
 const barrels=[[-16,16],[-13,16]].map(([x,z])=>{const mesh=new THREE.Group();const metal=mat(0xa84a28,.35);const drum=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,1.4,20),metal);drum.position.y=.7;drum.castShadow=true;mesh.add(drum);for(const y of [.25,1.1]){const band=new THREE.Mesh(new THREE.CylinderGeometry(.63,.63,.13,20),mat(0xe8b958));band.position.y=y;mesh.add(band);}mesh.position.set(x,terrainHeight(x,z),z);scene.add(mesh);const rect:Rect={x,z,hx:.7,hz:.7,angle:0};solids.push(rect);return {mesh,rect,alive:true,hp:26};});
 function explodeBarrel(barrel:typeof barrels[number],owner?:Car){if(!barrel.alive)return;barrel.alive=false;barrel.mesh.visible=false;const index=solids.indexOf(barrel.rect);if(index>=0)solids.splice(index,1);routes.clear();const center=barrel.mesh.position.clone().add(new THREE.Vector3(0,.8,0));burst(center,25);explosionSound(center);cameraKick=Math.max(cameraKick,.12);for(const c of cars){const dist=c.mesh.position.distanceTo(center);if(c.alive&&dist<6){const obstructed=solids.some(r=>!barrels.some(b=>b.alive&&b.rect===r)&&segmentHit(center.x,center.z,c.mesh.position.x-center.x,c.mesh.position.z-center.z,r)!==null);if(!obstructed)damage(c,Math.round(85*(1-dist/7)),owner);}}for(const other of barrels)if(other.alive&&other.mesh.position.distanceTo(center)<4.5)explodeBarrel(other,owner);}
-function blocked(c:Car,x:number,z:number,angle:number,solidOnly=false){const r=rect(c,x,z,angle);return solids.some(o=>overlaps(r,o))||cars.some(o=>o!==c&&o.alive&&overlaps(r,rect(o)))||(!solidOnly&&!!groundContact(x,z,angle,vehicles[c.loadout].hx,vehicles[c.loadout].hz,c.mesh.position.y,c.player,canDive(c.loadout)));}
+function blocked(c:Car,x:number,z:number,angle:number,solidOnly=false){const r=rect(c,x,z,angle);return solids.some(o=>overlaps(r,o))||cars.some(o=>o!==c&&o.alive&&overlaps(r,rect(o)))||(!solidOnly&&!!groundContact(x,z,angle,vehicles[c.loadout].hx,vehicles[c.loadout].hz,c.mesh.position.y,c.player));}
 // Impassable ground (cliffs, gorge floors, deep water, lava, deck edges); ignored while already inside it so a car can always drive out.
-function groundHit(c:Car,x:number,z:number){const spec=vehicles[c.loadout],hit=groundContact(x,z,c.angle,spec.hx,spec.hz,c.mesh.position.y,c.player,canDive(c.loadout));return hit&&!groundContact(c.mesh.position.x,c.mesh.position.z,c.angle,spec.hx,spec.hz,c.mesh.position.y,c.player,canDive(c.loadout))?hit:null;}
+function groundHit(c:Car,x:number,z:number){const spec=vehicles[c.loadout],hit=groundContact(x,z,c.angle,spec.hx,spec.hz,c.mesh.position.y,c.player);return hit&&!groundContact(c.mesh.position.x,c.mesh.position.z,c.angle,spec.hx,spec.hz,c.mesh.position.y,c.player)?hit:null;}
 const impacts=new Map<Car,{vx:number;vz:number;timer:number}>();
 function contact(c:Car,x:number,z:number){const r=rect(c,x,z);return solids.find(o=>overlaps(r,o))??cars.filter(o=>o!==c&&o.alive).map(o=>rect(o)).find(o=>overlaps(r,o));}
 function reboundNormal(a:Rect,b:Rect){let depth=Infinity,nx=0,nz=0;for(const angle of [a.angle,b.angle])for(const [x,z] of [[Math.cos(angle),-Math.sin(angle)],[Math.sin(angle),Math.cos(angle)]]){const radius=(r:Rect)=>r.hx*Math.abs(x*Math.cos(r.angle)-z*Math.sin(r.angle))+r.hz*Math.abs(x*Math.sin(r.angle)+z*Math.cos(r.angle));const d=(a.x-b.x)*x+(a.z-b.z)*z,overlap=radius(a)+radius(b)-Math.abs(d);if(overlap<depth){depth=overlap;nx=x*(d<0?-1:1);nz=z*(d<0?-1:1);}}return {nx,nz};}
@@ -229,7 +229,7 @@ function moveCar(c:Car,dt:number,steer:number,throttle:number){const previousPos
  let impact=impacts.get(c);if(!impact){impact={vx:0,vz:0,timer:0};impacts.set(c,impact);}
  const steps=Math.max(1,Math.ceil(dt/.008));for(let i=0;i<steps;i++){const h=dt/steps;impact.timer=Math.max(0,impact.timer-h);c.speed=THREE.MathUtils.damp(c.speed,impact.timer>0?0:throttle*(throttle<0?5:carSpec(c).speed*cornerSpeed(steer))*speedFactor(c),impact.timer>0?9:c.loadout===0?1.9:c.loadout===4?1.3:1.65,h);
  const angle=c.angle-steer*h*carSpec(c).turn*steeringGain(c.speed,carSpec(c).speed)*(c.speed<-.5?-1:1);if(!blocked(c,c.mesh.position.x,c.mesh.position.z,angle))c.angle=angle;else{// turning against a rail or rock face: ease the body away from it so the car can still turn
-  const px=c.mesh.position.x,pz=c.mesh.position.z,spec=vehicles[c.loadout],solid=solids.find(o=>overlaps(rect(c,px,pz,angle),o)),n=solid?reboundNormal(rect(c,px,pz,angle),solid):groundContact(px,pz,angle,spec.hx,spec.hz,c.mesh.position.y,false,canDive(c.loadout));if(n&&!blocked(c,px+n.nx*.08,pz+n.nz*.08,angle)){c.mesh.position.x+=n.nx*.08;c.mesh.position.z+=n.nz*.08;c.angle=angle;}}
+  const px=c.mesh.position.x,pz=c.mesh.position.z,spec=vehicles[c.loadout],solid=solids.find(o=>overlaps(rect(c,px,pz,angle),o)),n=solid?reboundNormal(rect(c,px,pz,angle),solid):groundContact(px,pz,angle,spec.hx,spec.hz,c.mesh.position.y,false);if(n&&!blocked(c,px+n.nx*.08,pz+n.nz*.08,angle)){c.mesh.position.x+=n.nx*.08;c.mesh.position.z+=n.nz*.08;c.angle=angle;}}
  
  const vx=-Math.sin(c.angle)*c.speed+impact.vx,vz=-Math.cos(c.angle)*c.speed+impact.vz,x=c.mesh.position.x+vx*h,z=c.mesh.position.z+vz*h;
  const obstacle=contact(c,x,z),crushed=!!obstacle&&c.loadout===4&&crush(c,x,z);const ground=obstacle?null:groundHit(c,x,z);if(!obstacle&&!ground){c.mesh.position.x=x;c.mesh.position.z=z;}else{const {nx,nz}=ground??reboundNormal(rect(c,x,z),obstacle!);const incoming=vx*nx+vz*nz,moving=Math.hypot(vx,vz);
@@ -241,7 +241,7 @@ function moveCar(c:Car,dt:number,steer:number,throttle:number){const previousPos
  fallCheck(c);
 }
 // Rivers, swamps and lava have no invisible wall for the driver: going over the edge is fatal. AI cars treat them as walls.
-// Dry gorges are not lethal: small cars drive down into them, big cars are stopped at the rim (see canDive).
+// Dry gorges are not lethal: every car, small or heavy, is stopped at the rim by an invisible wall.
 function fallCheck(c:Car){const p=c.mesh.position;if(!c.alive||terrainHazard(p.x,p.z)!==2)return;const deck=deckHeight(p.x,p.z);if(deck!==null&&p.y>deck-1.4)return;c.invulnerable=0;c.shield=0;if(c.player)toast(tr('坠落！','Fell in!'),1.5);damage(c,c.hp+1,undefined,'fall');}
 const keys=new Set<string>();let driveX=0,driveY=0,aimX=0,aimY=0,driveId:number|null=null,aimId:number|null=null,mouseAiming=false;let touchFire=false;
 function clearInput(){endSkillAim(false);keys.clear();mouseAiming=false;touchFire=false;driveX=driveY=aimX=aimY=0;driveId=aimId=null;}
