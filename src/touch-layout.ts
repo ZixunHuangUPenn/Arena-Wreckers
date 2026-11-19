@@ -6,7 +6,7 @@ import {tr} from './i18n';
 export type ButtonLayout={dx:number;dy:number;scale:number;opacity:number};
 export type TouchLayout=Record<string,ButtonLayout>;
 /** Controls the editor can move, in the order the size/opacity sliders cycle through them. */
-export const EDITABLE=['driveStick','fire','skill','missile','drift'];
+export const EDITABLE=['driveStick','fire','skill','missile'];
 const KEY='arena-touch-layout';
 const storage=():Storage|undefined=>{try{return typeof localStorage==='undefined'?undefined:localStorage;}catch{return undefined;}};
 const clamp=(v:number,a:number,b:number)=>Math.min(b,Math.max(a,v));
