@@ -64,11 +64,27 @@ export function collisionImpulse(ma:number,mb:number,closing:number,restitution=
  */
 export type ReverseState={hold:number;reversing:boolean};
 export const REVERSE_CONE=50*Math.PI/180,REVERSE_HOLD=.25,REVERSE_RELEASE=80*Math.PI/180;
-export function screenDrive(state:ReverseState,heading:number,angle:number,speed:number,magnitude:number,dt:number){
- if(magnitude<=.12){state.hold=0;state.reversing=false;return {turn:0,throttle:0};}
+export function screenDrive(state:ReverseState,heading:number,angle:number,speed:number,magnitude:number,dt:number,allowReverse=true){
+ if(magnitude<=.12||!allowReverse){state.hold=0;state.reversing=false;}if(magnitude<=.12)return {turn:0,throttle:0};
+ if(!allowReverse){const ahead=angleDelta(heading,angle),flip=speed<-.5?-1:1;return {turn:Math.max(-1,Math.min(1,-ahead*2))*flip,throttle:Math.min(1,magnitude)};}
  const ahead=angleDelta(heading,angle),behind=angleDelta(heading,angle+Math.PI);
  if(!state.reversing){state.hold=Math.abs(behind)<REVERSE_CONE?state.hold+dt:0;if(state.hold>=REVERSE_HOLD-1e-9)state.reversing=true;}
  else if(Math.abs(ahead)<Math.PI-REVERSE_RELEASE){state.reversing=false;state.hold=0;}
  // moveCar mirrors the yaw while rolling backwards; flipping the input here keeps the body turning the way the stick asks.
  const flip=speed<-.5?-1:1,clamp=(v:number)=>Math.max(-1,Math.min(1,v));
  return state.reversing?{turn:clamp(-behind*2)*flip,throttle:-magnitude}:{turn:clamp(-ahead*2)*flip,throttle:Math.min(1,magnitude)};}
+
+/**
+ * Touch auto-drift: there is no drift button on a phone, so a sudden hard turn at speed pulls the handbrake.
+ * It starts when the stick points at least `start` (rad) away from the nose while the car runs at `speed` of its
+ * top speed or more, so a gentle sweep that the car keeps up with never slides. Once sliding it holds for at least
+ * `min` seconds, then lets go when the nose is back within `keep` of the stick or the car has slowed below `keepSpeed`.
+ */
+export const AUTO_DRIFT={speed:.6,start:.7,keep:.28,keepSpeed:.3,min:.3};
+export type AutoDriftState={on:boolean;time:number};
+/** `error` is the angle between stick and nose (rad), `ratio` the forward speed over top speed; returns whether to hold the handbrake. */
+export function autoDrift(state:AutoDriftState,error:number,ratio:number,dt:number,reversing=false){const a=AUTO_DRIFT,e=Math.abs(error);
+ if(reversing||ratio<=0){state.on=false;state.time=0;return false;}
+ if(!state.on){if(ratio>=a.speed&&e>=a.start){state.on=true;state.time=0;}}
+ else{state.time+=dt;if(state.time>=a.min&&(e<a.keep||ratio<a.keepSpeed)){state.on=false;state.time=0;}}
+ return state.on;}

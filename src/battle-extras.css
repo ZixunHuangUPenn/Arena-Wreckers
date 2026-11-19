@@ -1,0 +1,56 @@
+/* Round touch buttons: skill and missile get an icon, a cooldown ring and a countdown in the middle. */
+#gameUI #actions .round-action{position:absolute;display:grid;place-items:center;padding:0;margin:0;border:0;border-radius:50%;color:#f4ecd2;font-weight:800;line-height:1;touch-action:none;
+ background:radial-gradient(circle at 50% 42%,#26332f,#121a18 62%,transparent 63%),conic-gradient(var(--accent,#e1bd7c) var(--ready,100%),#2b3532 0);box-shadow:0 0 0 2px #0b1110,0 6px 16px #0009}
+#gameUI #actions #skill.round-action{width:78px;height:78px;right:136px;bottom:0}
+#gameUI #actions #missile.round-action{width:62px;height:62px;right:106px;bottom:104px;--accent:#ff9a5a;background:radial-gradient(circle at 50% 42%,#33251b,#18110d 62%,transparent 63%),conic-gradient(var(--accent) var(--cool,360deg),#3b2c22 0)}
+#gameUI #actions .round-action .ico,#gameUI #actions .round-action svg{width:30px;height:30px;color:var(--accent,#e1bd7c);transition:opacity .2s}
+#gameUI #actions #missile.round-action svg{width:26px;height:26px}
+#gameUI #actions .round-action small{position:absolute;left:50%;bottom:-14px;transform:translateX(-50%);font-size:10px;font-weight:700;white-space:nowrap;color:#e8eee9;text-shadow:0 1px 3px #000,0 0 6px #000}
+#gameUI #actions .round-action .cd{position:absolute;inset:0;display:grid;place-items:center;font-size:24px;font-weight:800;color:#fff;text-shadow:0 1px 4px #000;pointer-events:none}
+#gameUI #actions .round-action.cooling .ico,#gameUI #actions .round-action.cooling svg{opacity:.28}
+#gameUI #actions .round-action:not(.cooling):not(:disabled){animation:aw-ready 1.6s ease-in-out infinite}
+#gameUI #actions .round-action:disabled{filter:none;opacity:1}
+@keyframes aw-ready{50%{box-shadow:0 0 0 2px #0b1110,0 0 18px -2px var(--accent,#e1bd7c),0 6px 16px #0009}}
+/* Floating stick: a touch zone over the left of the screen; the stick jumps under the finger. */
+#gameUI #driveZone{position:absolute;left:0;top:118px;bottom:0;width:46%;display:none;pointer-events:auto;touch-action:none}
+#controls.float-stick #driveZone{display:block}
+#controls.float-stick #driveStick:not(.floating){opacity:.55}
+#gameUI #driveStick.floating{bottom:auto;transform:translate(-50%,-50%) scale(var(--control-scale,1));transform-origin:center;opacity:1}
+/* Pickup buffs under the match timer: icon, value and a draining bar. */
+#gameUI #buffs{display:flex;justify-content:flex-end;gap:4px;margin:3px 0 2px}
+#gameUI #buffs:empty{display:none}
+#gameUI #buffs .buff{position:relative;display:inline-flex;align-items:center;gap:4px;padding:1px 7px 4px;border-radius:5px;background:#0000006b;border:1px solid #ffffff1f;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+#gameUI #buffs .buff i{font-style:normal}#gameUI #buffs .buff em{font-style:normal;color:#e8eee9}
+#gameUI #buffs .buff u{position:absolute;left:4px;right:4px;bottom:1px;height:2px;background:#ffffff22;text-decoration:none}
+#gameUI #buffs .buff u::after{content:'';position:absolute;left:0;top:0;bottom:0;width:calc(var(--left,1)*100%);background:currentColor}
+#gameUI #buffs .power{color:#ff8a5c}#gameUI #buffs .boost{color:#7fe3ff}#gameUI #buffs .shield{color:#a9d6ff}
+/* Hull on fire: the health panel pulses red. */
+#gameUI #hud.critical>div:first-child{animation:aw-critical .9s ease-in-out infinite}
+#gameUI #hud.critical .fill{background:linear-gradient(90deg,#ff3b2f,#ff8a3d)!important}
+@keyframes aw-critical{50%{box-shadow:0 0 0 2px #ff3b2f,0 0 22px #ff3b2f99}}
+/* First-match coaching card; afterwards the bottom help line is gone for good. */
+#gameUI #coach{position:absolute;left:50%;top:50%;transform:translate(-50%,-58%);pointer-events:none;z-index:4}
+#gameUI #coach[hidden]{display:none}
+#gameUI #coach .coach-card{min-width:330px;max-width:430px;padding:16px 20px 12px;border-radius:12px;background:#0b1316e6;border:1px solid #ffffff2e;border-top:3px solid #e1bd7c;box-shadow:0 12px 40px #000a;color:#e8eee9;animation:aw-coach .35s ease-out}
+#gameUI #coach strong{display:block;font-size:16px;margin-bottom:8px;letter-spacing:.04em}
+#gameUI #coach p{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:13px;line-height:1.35}
+#gameUI #coach kbd{flex:0 0 auto;min-width:46px;padding:3px 7px;border:1px solid #ffffff55;border-radius:5px;font:inherit;font-size:11px;font-weight:700;text-align:center;color:#ffd99a}
+#gameUI #coach small{display:block;margin-top:9px;font-size:11px;color:#9fb0ae}
+@keyframes aw-coach{from{opacity:0;transform:translateY(10px)}}
+#app.coached #gameUI #help{display:none!important}
+#pauseLayer .pause-help{margin:4px 0;font-size:12px;color:#c9d4d1}
+html[data-play-mode=mobile] #pauseLayer .keys-only,html:not([data-play-mode=mobile]) #pauseLayer .touch-only{display:none}
+/* Button layout editor. */
+#app.layout-editing::after{content:'';position:fixed;inset:0;background:#081014e6;z-index:59}
+#app.layout-editing #gameUI{display:block!important;z-index:60;pointer-events:auto}
+#app.layout-editing #gameUI>*:not(#controls):not(#layoutBar){visibility:hidden}
+#app.layout-editing #gameUI #controls,#app.layout-editing #gameUI #controls>*,#app.layout-editing #gameUI #actions>*{display:block;visibility:visible;pointer-events:auto}
+#app.layout-editing #gameUI #actions .round-action{display:grid}
+#app.layout-editing #gameUI #driveZone{display:none}
+#app.layout-editing .layout-selected{outline:2px dashed #ffd36b;outline-offset:6px}
+#gameUI #layoutBar{position:absolute;left:50%;top:14px;transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:10px 14px;align-items:center;max-width:94%;padding:10px 14px;border-radius:10px;background:#141f23;border:1px solid #ffffff33;box-shadow:0 8px 24px #000a;color:#e8eee9;font-size:13px;pointer-events:auto;z-index:5}
+#gameUI #layoutBar[hidden]{display:none}
+#gameUI #layoutBar label{display:flex;align-items:center;gap:6px}
+#gameUI #layoutBar input{width:110px}
+#gameUI #layoutBar button{padding:7px 12px;border-radius:7px;border:1px solid #ffffff44;background:#25333a;color:#fff;font-weight:700}
+#gameUI #layoutBar button.primary{background:#d8a64a;color:#1b1407;border-color:#f3cf7e}
