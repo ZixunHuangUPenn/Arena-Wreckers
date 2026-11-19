@@ -163,16 +163,16 @@ export function vehicleWearMap(){
  wearTexture=new THREE.DataTexture(data,N,N,THREE.RGBAFormat);wearTexture.wrapS=wearTexture.wrapT=THREE.RepeatWrapping;wearTexture.magFilter=THREE.LinearFilter;wearTexture.minFilter=THREE.LinearMipmapLinearFilter;wearTexture.generateMipmaps=true;wearTexture.needsUpdate=true;
  return wearTexture;
 }
-type Wear={dirt:number;scratch:number;dust?:number;top?:number};
+type Wear={dirt:number;scratch:number;dust?:number;top?:number;battle?:{value:number}};
 /** Adds object-space triplanar grime, dust on horizontal faces and edge scratches to a standard/physical material. */
 function weathered<T extends THREE.MeshStandardMaterial>(material:T,wear:Wear){
- const uniforms={uWear:{value:vehicleWearMap()},uDust:{value:new THREE.Color(wear.dust??0x8a7a62)},uDirt:{value:wear.dirt},uScratch:{value:wear.scratch},uDirtTop:{value:wear.top??1.1}};
+ const uniforms={uWear:{value:vehicleWearMap()},uDust:{value:new THREE.Color(wear.dust??0x8a7a62)},uDirt:{value:wear.dirt},uScratch:{value:wear.scratch},uDirtTop:{value:wear.top??1.1},uBattle:wear.battle??{value:0}};
  material.userData.wear=uniforms;
  material.onBeforeCompile=shader=>{
   Object.assign(shader.uniforms,uniforms);
   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vObjPos;varying vec3 vObjNrm;').replace('#include <begin_vertex>','#include <begin_vertex>\nvObjPos=position;vObjNrm=normalize(objectNormal);');
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
-uniform sampler2D uWear;uniform vec3 uDust;uniform float uDirt,uScratch,uDirtTop;varying vec3 vObjPos;varying vec3 vObjNrm;
+uniform sampler2D uWear;uniform vec3 uDust;uniform float uDirt,uScratch,uDirtTop,uBattle;varying vec3 vObjPos;varying vec3 vObjNrm;
 vec4 wearTri(vec3 p,vec3 n,float s){vec3 w=pow(abs(n),vec3(4.));w/=(w.x+w.y+w.z+1e-4);return texture2D(uWear,p.zy*s)*w.x+texture2D(uWear,p.xz*s)*w.y+texture2D(uWear,p.xy*s)*w.z;}`)
   .replace('#include <color_fragment>',`#include <color_fragment>
 vec4 wA=wearTri(vObjPos,vObjNrm,.32),wB=wearTri(vObjPos,vObjNrm,1.35);
@@ -182,9 +182,16 @@ dirt=max(dirt,uDirt*.6*smoothstep(.55,.95,vObjNrm.y)*smoothstep(.45,.8,wA.r));
 float scratch=uScratch*smoothstep(.35,.85,wB.g)*(1.-dirt);
 diffuseColor.rgb=mix(diffuseColor.rgb,uDust*(.75+.5*wB.b),clamp(dirt,0.,1.));
 diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.5,.5,.49),scratch);
-diffuseColor.rgb*=.94+.12*wB.b;`)
+diffuseColor.rgb*=.94+.12*wB.b;
+// Battle damage grows as the hull loses health: soot blooms out of the grime pattern and bare metal shows in fresh gouges.
+float soot=uBattle*smoothstep(.75-uBattle*.6,.95-uBattle*.5,wA.r*.7+wB.b*.3);
+float gouge=uBattle*smoothstep(.55,.9,wB.g)*smoothstep(.3,.7,wA.b);
+diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.03,.028,.025),clamp(soot*.85,0.,1.));
+diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.42,.41,.4),gouge*(1.-soot));
+dirt=max(dirt,soot);scratch=max(scratch,gouge);`)
   .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(mix(roughnessFactor,.96,dirt)+(wA.b-.5)*.1-scratch*.2,.04,1.);')
   .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\nmetalnessFactor=mix(mix(metalnessFactor,0.,dirt),.85,scratch);')
+  .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(normal+uBattle*.45*vec3(wA.r-.5,wB.b-.5,wA.g-.5));')
   .replace('#include <lights_physical_fragment>','#include <lights_physical_fragment>\n#ifdef USE_CLEARCOAT\nmaterial.clearcoat*=clamp(1.-dirt*1.4-scratch,0.,1.);\n#endif');
  };
  material.customProgramCacheKey=()=>'aw-wear';
@@ -200,7 +207,7 @@ const finishes:Finish[]=[
 ];
 function materialSet(kind:number,color:number):Record<Bucket,THREE.Material>{
  const f=finishes[kind]??finishes[1],dust=f.dust;
- const w=(dirt:number,scratch:number,top=1.1):Wear=>({dirt,scratch,dust,top});
+ const battle={value:0},w=(dirt:number,scratch:number,top=1.1):Wear=>({dirt,scratch,dust,top,battle});
  const glass=new THREE.MeshPhysicalMaterial({name:'Glass',color:0x0d1519,metalness:0,roughness:.05,clearcoat:1,clearcoatRoughness:.02,envMapIntensity:1.5,ior:1.52});
  const well=new THREE.MeshStandardMaterial({name:'Wheel well',color:0x0b0b0c,roughness:.95,side:THREE.DoubleSide});
  return {
@@ -482,3 +489,32 @@ export function buildVehicle(kind:number,color:number,gunHeight:number):VehicleV
 }
 /** Visual-only wheel spin, steering lock, body roll and pitch. `distance` is metres travelled this frame (signed). */
 export function animateVehicle(visual:THREE.Object3D,distance:number,steer:number,roll:number,pitch:number){const data=visual.userData;if(!data?.wheels)return;for(const w of data.wheels as {mesh:THREE.Group;steer:boolean;radius:number}[]){w.mesh.children[0].rotation.x-=distance/w.radius;if(w.steer)w.mesh.rotation.y=steer;}const body=data.body as THREE.Group;body.rotation.z=roll;body.rotation.x=pitch;}
+
+/* ------------------------------------------------------------------ live condition: battle damage, arena dust, headlights */
+
+type WearUniforms={uBattle:{value:number};uDust:{value:THREE.Color}};
+const wearOf=(visual:THREE.Object3D)=>((visual.userData.materials??[]) as THREE.Material[]).map(m=>m.userData.wear as WearUniforms|undefined).filter((w):w is WearUniforms=>!!w);
+/** 0 = factory fresh, 1 = nearly wrecked: soot, bare-metal gouges and dented normals on every weathered surface. */
+export function setVehicleCondition(visual:THREE.Object3D,battle:number){const w=wearOf(visual)[0];if(w)w.uBattle.value=THREE.MathUtils.clamp(battle,0,1);}
+/** Tints the road dust caked on the lower body to the arena's ground (sand, slag, snow, ash). */
+export function setVehicleDust(visual:THREE.Object3D,color:number){for(const w of wearOf(visual))w.uDust.value.setHex(color);}
+
+let beamTexture:THREE.DataTexture|null=null;
+/** Soft radial pool used for the ground spot of a headlight and the cone's falloff. */
+function beamPool(){if(beamTexture)return beamTexture;const n=64,data=new Uint8Array(n*n*4);for(let y=0;y<n;y++)for(let x=0;x<n;x++){const u=(x+.5)/n*2-1,v=(y+.5)/n*2-1,r=Math.min(1,Math.hypot(u*1.25,v));const a=Math.pow(1-r,1.6),i=(y*n+x)*4;data[i]=data[i+1]=data[i+2]=255;data[i+3]=a*255;}beamTexture=new THREE.DataTexture(data,n,n,THREE.RGBAFormat);beamTexture.magFilter=beamTexture.minFilter=THREE.LinearFilter;beamTexture.needsUpdate=true;return beamTexture;}
+const beamMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,uniforms:{uColor:{value:new THREE.Color(0xffe6b8)},uStrength:{value:.32}},
+ vertexShader:'varying float vAlong;varying vec3 vN;varying vec3 vV;void main(){vAlong=uv.y;vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+ fragmentShader:'uniform vec3 uColor;uniform float uStrength;varying float vAlong;varying vec3 vN;varying vec3 vV;void main(){float edge=pow(abs(dot(normalize(vN),normalize(vV))),1.4);float a=uStrength*pow(vAlong,1.8)*edge;gl_FragColor=vec4(uColor*a,1.);}'});
+const poolMaterial=new THREE.MeshBasicMaterial({color:0xffdcaa,transparent:true,opacity:.55,depthWrite:false,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+/**
+ * Fake headlight beams for the night arena: two additive volumetric cones out of the front lamps and a light
+ * pool on the ground ahead. Costs four transparent draws per car instead of real spot lights on every surface.
+ */
+export function addHeadlights(visual:THREE.Object3D){
+ const body=visual.userData.body as THREE.Object3D|undefined;if(!body||visual.getObjectByName('headlights'))return visual.getObjectByName('headlights')!;
+ const box=new THREE.Box3().setFromObject(body),size=box.getSize(new THREE.Vector3()),group=new THREE.Group();group.name='headlights';
+ const front=box.min.z+.1,y=Math.min(box.min.y+size.y*.42,1.1);
+ for(const side of [-1,1]){const length=7.5,cone=new THREE.ConeGeometry(1.5,length,18,1,true);cone.translate(0,-length/2,0);cone.rotateX(Math.PI/2-.13);const mesh=new THREE.Mesh(cone,beamMaterial);mesh.position.set(side*size.x*.32,y,front);mesh.renderOrder=9;mesh.name='beam';group.add(mesh);}
+ const pool=new THREE.Mesh(new THREE.PlaneGeometry(5.5,8).rotateX(-Math.PI/2),poolMaterial.clone());(pool.material as THREE.MeshBasicMaterial).map=beamPool();pool.position.set(0,.06,front-5.2);pool.renderOrder=4;pool.name='pool';group.add(pool);
+ visual.add(group);return group;
+}
