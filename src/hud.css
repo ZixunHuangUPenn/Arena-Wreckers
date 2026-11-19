@@ -55,6 +55,14 @@
 #pauseLayer #leave{position:static;border:1px solid #ff8a6a77;background:#3a1b16cc;color:#ffb39e;box-shadow:none}
 #pauseLayer #leave:hover{border-color:#ff8a6a}
 #pauseLayer #resume{margin:0;border:0;background:linear-gradient(180deg,#ffd88a,#f2b64d);color:#1a1206;box-shadow:0 8px 22px #f2b64d55}
+/* Button-layout entry: it had no style of its own, so it fell back to the browser's light button face under light text. */
+#pauseLayer .pause-actions{flex-wrap:wrap}
+#pauseLayer .pause-actions button{white-space:nowrap;padding:10px 12px}
+/* Own row above Quit/Cancel so three long English labels never push past the card. */
+#pauseLayer #pauseLayout{flex-basis:100%;border:1px solid #9fc3d266;background:#1b2a33;color:#e4f1f6;box-shadow:none}
+#pauseLayer #pauseLayout:hover{border-color:#bfe0ee;background:#223642}
+#pauseLayer #pauseLayout:active{background:#2a4250}
+#pauseLayer .pause-actions button:focus-visible{outline:2px solid #ffd88a;outline-offset:3px}
 /* Match-start title card. */
 .arena-banner{position:absolute;left:50%;top:150px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 34px 12px;pointer-events:none;z-index:6;animation:aw-banner 3.4s cubic-bezier(.2,.8,.2,1) both}
 .arena-banner small{font-size:9px;letter-spacing:.42em;color:#f2b64d;font-weight:700}
