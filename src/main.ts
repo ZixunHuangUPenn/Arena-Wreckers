@@ -11,7 +11,7 @@ import './game-fit.css';
 import './menu.css';
 import './hud.css';
 import {mapLayout,navOpen,randomSeed,ARENA,terrainHazard,fluidSurface,PICKUP_SPOTS} from './terrain';
-import {chassis,surfaceGrip,turnMomentum,bleedSlip,slopeAcceleration,collisionImpulse,screenDrive,slipYaw,SLIP_LIMIT,DRIFT_LIMIT,GRAVITY,AIR_GAP,HANDBRAKE_GRIP,HANDBRAKE_YAW,REVERSE_SPEED,DRIFT_CHARGE,type ReverseState} from './dynamics';
+import {chassis,surfaceGrip,turnMomentum,bleedSlip,slopeAcceleration,collisionImpulse,screenDrive,slipYaw,SLIP_LIMIT,DRIFT_LIMIT,GRAVITY,AIR_GAP,HANDBRAKE_GRIP,HANDBRAKE_YAW,REVERSE_SPEED,DRIFT_CHARGE,autoDrift,type ReverseState,type AutoDriftState} from './dynamics';
 import {buildBridge,driveHeight,bridgeHit,deckHeight,groundContact} from './bridge';
 import {addMapDetails} from './map-detail';
 import {buildEnvironment,applyArenaLighting,aimSun,type Footprint} from './environment';
@@ -40,7 +40,7 @@ import './skills.css';
 import './progression.css';
 import {skillTuning,skillKits,isRearHit,sphereEntry,barragePoints,domeBlast} from './skills';
 import {SkillEffects,type Dome,type Cable} from './skill-effects';
-import {AimIndicator,dragAim,aimDistance,type SkillAim} from './skill-aim';
+import {AimIndicator,dragAim,aimDistance,AIM_DEADZONE,AIM_FULL,type SkillAim} from './skill-aim';
 import {AIM,TargetLock,VelocityTracker,leadPoint,targetScore,offAngle,headingTo,lobSpeed,lobPath} from './targeting';
 import {AimGuide} from './aim-guide';
 
@@ -65,7 +65,7 @@ const deviceCard=(m:PlayMode)=>`<button data-play="${m}"><b>${deviceName(m)}</b>
 picker.innerHTML = `<div class="welcome-lang segmented" role="group" aria-label="Language / 语言"><button data-lang="zh" class="${lang==='zh'?'selected':''}">中文</button><button data-lang="en" class="${lang==='en'?'selected':''}">English</button></div><div class="welcome-brand"><b>ARENA</b><span>WRECKERS</span></div><p class="welcome-lead">${tr('废土竞技场 · 车辆战斗','Wasteland arena · Vehicle combat')}</p><label class="welcome-name"><span>${tr('车手名','Driver name')}</span><input id="driverName" maxlength="24" required autocomplete="nickname" placeholder="${tr('输入你的名字','Enter your name')}"></label><p class="welcome-ask">${tr('AI 难度','AI difficulty')}</p><div class="welcome-diff segmented"><button data-diff="easy">${tr('轻松','Easy')}</button><button data-diff="normal" class="selected">${tr('标准','Normal')}</button><button data-diff="hard">${tr('挑战','Hard')}</button></div><p class="welcome-ask">${tr('操作设备 · 已按本机自动选择','Device · picked automatically for this screen')}</p><div class="welcome-options">${deviceCard('mobile')}${deviceCard('web')}</div><button class="welcome-start" value="start">${tr('开始游戏','Start')} ▶</button><p class="welcome-foot">${tr('进度自动保存在本机 · 语言和设备可随时在设置中切换','Progress saves on this device · Change language or device any time in Settings')}</p>`;
 app.append(picker);
 picker.addEventListener('cancel', event => event.preventDefault());
-const touchHelp = tr('左侧驾驶（推向车尾倒车）· 漂移键甩尾 · 按住开火自动瞄准 · 点敌车锁定 · 拖动手动瞄准','Left side drives (push to the tail to reverse) · Drift to slide · Hold fire to auto-aim · Tap an enemy to lock · Drag to aim by hand');
+const touchHelp = tr('左侧驾驶（推向车尾倒车）· 高速急转自动漂移 · 按住开火自动瞄准 · 点敌车锁定 · 拖动手动瞄准','Left side drives (push to the tail to reverse) · Turn hard at speed to drift · Hold fire to auto-aim · Tap an enemy to lock · Drag to aim by hand');
 const webHelp = tr('WASD 驾驶 · Shift 漂移 · 空格自动瞄准开火 · 鼠标指向或 Tab 切换目标 · E 导弹 · Q 技能（按住瞄准）· Esc 暂停','WASD drive · Shift drift · Space auto-aims and fires · Point the mouse or press Tab to pick a target · E missile · Q skill (hold to aim) · Esc pause');
 let driver='';
 let variants=profileStore.data.variants;
@@ -299,24 +299,26 @@ function landed(c:Car,speed:number){const power=Math.min(1,speed/12),p=c.mesh.po
 // Dry gorges are not lethal: every car, small or heavy, is stopped at the rim by an invisible wall.
 function fallCheck(c:Car){const p=c.mesh.position;if(!c.alive||terrainHazard(p.x,p.z)!==2)return;const deck=deckHeight(p.x,p.z);if(deck!==null&&p.y>deck-1.4)return;{const f=fluidSurface(p.x,p.z);if(bodyOf(c).air>0&&!(f&&p.y<f.level+.4))return;}/* still in the air over it */c.invulnerable=0;c.shield=0;if(c.player)toast(tr('坠落！','Fell in!'),1.5);damage(c,c.hp+1,undefined,'fall');}
 const keys=new Set<string>();let driveX=0,driveY=0,aimX=0,aimY=0,driveId:number|null=null,aimId:number|null=null,mouseAiming=false;let touchFire=false;
-let driftHeld=false;const reverseState:ReverseState={hold:0,reversing:false};
+const reverseState:ReverseState={hold:0,reversing:false},driftState:AutoDriftState={on:false,time:0};
 /**
  * The player's car. Screen-direction driving (stick or WASD, the default): the car heads where the input points, and
  * holding it towards the tail backs up instead of swinging round. With the car-relative keyboard option W/S drive and
- * reverse and A/D steer. Shift (or the touch Drift button) is the handbrake.
+ * reverse and A/D steer. Shift is the handbrake; on the touch stick a sudden hard turn at speed drifts by itself.
  */
-function playerDrive(c:Car,dt:number){const handbrake=driftHeld||keys.has('ShiftLeft')||keys.has('ShiftRight'),kx=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),ky=(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0);
- if(profileStore.data.settings.carKeys&&Math.hypot(driveX,driveY)<.12){reverseState.hold=0;reverseState.reversing=false;moveCar(c,dt,kx,-ky,handbrake);return;}
- const x=driveX+kx,y=driveY+ky,d=screenDrive(reverseState,screenHeading(x,y),c.angle,c.speed,Math.min(1,Math.hypot(x,y)),dt);moveCar(c,dt,d.turn,d.throttle,handbrake);}
-function clearInput(){endSkillAim(false);keys.clear();driftHeld=false;mouseAiming=false;touchFire=false;driveX=driveY=aimX=aimY=0;driveId=aimId=null;}
+function playerDrive(c:Car,dt:number){const kx=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),ky=(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0),shift=keys.has('ShiftLeft')||keys.has('ShiftRight'),touch=Math.hypot(driveX,driveY)>.12;
+ if(!touch){driftState.on=false;driftState.time=0;}
+ if(profileStore.data.settings.carKeys&&!touch){reverseState.hold=0;reverseState.reversing=false;moveCar(c,dt,kx,-ky,shift);return;}
+ const x=driveX+kx,y=driveY+ky,heading=screenHeading(x,y),d=screenDrive(reverseState,heading,c.angle,c.speed,Math.min(1,Math.hypot(x,y)),dt);
+ // Phones have no drift button: a sudden hard turn on the stick at speed pulls the handbrake by itself.
+ const slide=touch&&autoDrift(driftState,angleDelta(heading,c.angle),c.speed/Math.max(1,carSpec(c).speed),dt,reverseState.reversing);
+ moveCar(c,dt,d.turn,d.throttle,shift||slide);}
+function clearInput(){endSkillAim(false);keys.clear();driftState.on=false;mouseAiming=false;touchFire=false;driveX=driveY=aimX=aimY=0;driveId=aimId=null;}
 addEventListener('keydown',e=>{if(!running||paused)return;keys.add(e.code);if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(e.code==='KeyR'&&!running)reset();});addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',clearInput);
 const driveStick=document.querySelector<HTMLElement>('#driveStick')!,aimPad=document.querySelector<HTMLElement>('#fire')!;
 // Touch layouts: twin sticks (right pad drags to aim) or left stick + auto-aim (right pad only fires; the turret locks on by itself).
 function applyControlLayout(){document.querySelector('#controls')?.classList.toggle('auto-aim',inputMode==='auto');if(inputMode==='auto')aimX=aimY=0;}
 function stickInput(e:PointerEvent,el:HTMLElement){const r=el.getBoundingClientRect(),x=(e.clientX-r.left-r.width/2)/(r.width*.36),y=(e.clientY-r.top-r.height/2)/(r.height*.36),length=Math.max(1,Math.hypot(x,y));return {x:x/length,y:y/length};}
 driveStick.addEventListener('pointerdown',e=>{if(driveId!==null)return;driveId=e.pointerId;driveStick.setPointerCapture(e.pointerId);const v=stickInput(e,driveStick);driveX=v.x;driveY=v.y;});driveStick.addEventListener('pointermove',e=>{if(e.pointerId!==driveId)return;const v=stickInput(e,driveStick);driveX=v.x;driveY=v.y;});
-// Touch handbrake: held while the finger is down.
-const driftButton=document.querySelector<HTMLElement>('#drift')!;driftButton.addEventListener('pointerdown',e=>{driftHeld=true;driftButton.setPointerCapture(e.pointerId);});for(const event of ['pointerup','pointercancel','lostpointercapture'])driftButton.addEventListener(event,()=>{driftHeld=false;});
 let fireOriginX=0,fireOriginY=0;
 aimPad.addEventListener('pointerdown',e=>{if(aimId!==null)return;aimId=e.pointerId;aimPad.setPointerCapture(e.pointerId);touchFire=true;mouseAiming=false;fireOriginX=e.clientX;fireOriginY=e.clientY;aimX=aimY=0;});aimPad.addEventListener('pointermove',e=>{if(e.pointerId!==aimId||inputMode==='auto')return;const dx=e.clientX-fireOriginX,dy=e.clientY-fireOriginY;const length=Math.hypot(dx,dy);aimX=length>9?dx/length:0;aimY=length>9?dy/length:0;});
 for(const event of ['pointerup','pointercancel','lostpointercapture']){driveStick.addEventListener(event,e=>{if((e as PointerEvent).pointerId===driveId){driveId=null;driveX=driveY=0;}});aimPad.addEventListener(event,e=>{if((e as PointerEvent).pointerId===aimId){aimId=null;touchFire=false;aimX=aimY=0;}});}
@@ -326,27 +328,38 @@ let mouseX=0,mouseY=0;
 function mouseGround(){aimPlane.constant=-player.mesh.position.y;aimRay.setFromCamera(new THREE.Vector2(mouseX/innerWidth*2-1,-mouseY/innerHeight*2+1),camera);return aimRay.ray.intersectPlane(aimPlane,aimPoint);}
 addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||!running)return;mouseAiming=true;mouseX=e.clientX;mouseY=e.clientY;if(mouseGround())player.aim=Math.atan2(player.mesh.position.x-aimPoint.x,player.mesh.position.z-aimPoint.z);});
 
-// ---- Skill aiming. Touch: drag the skill button to choose a direction (and distance), release to cast; a tap casts
+// ---- Skill aiming. Touch: press the skill button and a pad appears whose ring is the skill's full reach; drag to any
+// spot inside it (distance is linear from the centre), release to cast, drag back to the centre to cancel; a tap casts
 // the default way. Mouse: hold Q to see the indicator at the pointer, release Q to cast, right-click to cancel.
-type AimSession={pointer:number|null;x0:number;y0:number;x:number;y:number;moved:boolean;aim:SkillAim|null};
+type AimSession={pointer:number|null;x0:number;y0:number;cx:number;cy:number;x:number;y:number;moved:boolean;aim:SkillAim|null};
 const skillButton=document.querySelector<HTMLElement>('#skill')!;let skillAim:AimSession|null=null;
 const aimable=(c:Car)=>c.loadout===1||c.loadout===3;
 function canAim(){return running&&!paused&&!finale&&player.alive&&player.skillTimer<=0&&aimable(player);}
-function endSkillAim(cast:boolean){const a=skillAim;if(!a)return;skillAim=null;skillButton.style.transform='';skillButton.classList.remove('aiming');aimIndicator.hide();if(cast)activateSkill(player,a.aim??undefined);}
+const skillPad=document.querySelector<HTMLElement>('#skillPad')!;
+/** Touch aim pad: a ring around where the drag started whose edge is the skill's full reach, with a knob under the finger
+ * (clamped to the ring) and the chosen distance, so the player can see and pick any spot inside the reach circle. */
+/** Centre of the aim pad for a drag that starts at (x,y), in client px: under the finger, nudged in from the screen
+ * edges so the whole ring fits and every direction can reach the far end of the range. */
+function padCentre(x:number,y:number){const L=layoutState,scale=L.scale||1,m=AIM_FULL+6,clamp=(v:number,size:number)=>size>2*m?Math.max(m,Math.min(size-m,v)):size/2;
+ return {cx:L.x+clamp((x-L.x)/scale,L.width)*scale,cy:L.y+clamp((y-L.y)/scale,L.height)*scale};}
+function showSkillPad(a:AimSession,distance:number|null){const scale=layoutState.scale||1,ox=(a.cx-layoutState.x)/scale,oy=(a.cy-layoutState.y)/scale,dx=(a.x-a.cx)/scale,dy=(a.y-a.cy)/scale,length=Math.hypot(dx,dy),k=length>AIM_FULL?AIM_FULL/length:1;
+ skillPad.style.cssText=`display:block;left:${ox.toFixed(1)}px;top:${oy.toFixed(1)}px;--full:${AIM_FULL}px;--dead:${AIM_DEADZONE}px`;skillPad.classList.toggle('cancel',a.moved&&length<=AIM_DEADZONE);
+ skillPad.querySelector<HTMLElement>('b')!.style.transform=`translate(${(dx*k).toFixed(1)}px,${(dy*k).toFixed(1)}px)`;skillPad.querySelector('span')!.textContent=length<=AIM_DEADZONE||distance===null?'':`${distance.toFixed(distance<10?1:0)} m`;}
+function endSkillAim(cast:boolean){const a=skillAim;if(!a)return;skillAim=null;skillButton.style.transform='';skillPad.style.display='none';skillButton.classList.remove('aiming');aimIndicator.hide();if(cast)activateSkill(player,a.aim??undefined);}
 /** Re-reads the drag or the mouse and redraws the ground indicator. */
 function refreshSkillAim(dt:number){const a=skillAim;if(!a)return;if(!canAim()){endSkillAim(false);return;}const p=player.mesh.position,color=new THREE.Color(skillKits[player.loadout].accent).getHex(),b=ST.barrage;
  if(a.pointer===null){const g=mouseGround(),d=g?Math.hypot(p.x-g.x,p.z-g.z):0;a.aim=g&&d>.5?{angle:Math.atan2(p.x-g.x,p.z-g.z),power:(d-b.aimMin)/(b.aimMax-b.aimMin)}:{angle:player.aim,power:.5};}
- else{const dx=a.x-a.x0,dy=a.y-a.y0,scale=layoutState.scale||1,reach=Math.min(1,26*scale/Math.max(1,Math.hypot(dx,dy)));a.aim=dragAim(dx,dy,screenHeading,scale);if(a.aim)a.moved=true;skillButton.style.transform=`translate(${(dx*reach/scale).toFixed(1)}px,${(dy*reach/scale).toFixed(1)}px)`;}
+ else{const scale=layoutState.scale||1;if(Math.hypot(a.x-a.x0,a.y-a.y0)>AIM_DEADZONE*scale)a.moved=true;a.aim=a.moved?dragAim(a.x-a.cx,a.y-a.cy,screenHeading,scale):null;showSkillPad(a,a.aim&&player.loadout===3?aimDistance(a.aim.power,b.aimMin,b.aimMax):null);}
  skillButton.classList.add('aiming');
  if(!a.aim){aimIndicator.hide();return;}
  if(player.loadout===1){const h=hookSpec(player),target=hookTarget(player,a.aim.angle,h,true);aimIndicator.showHook(p.x,p.z,a.aim.angle,h.range,h.cone,color,target?{x:target.mesh.position.x,z:target.mesh.position.z}:null,dt);}
  else{const plan=barragePlan(player,a.aim);aimIndicator.showBarrage(p.x,p.z,plan.aim,Math.hypot(plan.x-p.x,plan.z-p.z),plan.points,b.radius,b.aimMax,color,dt);}}
-skillButton.addEventListener('pointerdown',e=>{if(skillAim)return;if(!canAim()){activateSkill(player);return;}skillAim={pointer:e.pointerId,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,moved:false,aim:null};skillButton.setPointerCapture(e.pointerId);});
-skillButton.addEventListener('pointermove',e=>{const a=skillAim;if(!a||a.pointer!==e.pointerId)return;a.x=e.clientX;a.y=e.clientY;if(dragAim(a.x-a.x0,a.y-a.y0,screenHeading,layoutState.scale||1))a.moved=true;});
+skillButton.addEventListener('pointerdown',e=>{if(skillAim)return;if(!canAim()){activateSkill(player);return;}skillAim={pointer:e.pointerId,x0:e.clientX,y0:e.clientY,...padCentre(e.clientX,e.clientY),x:e.clientX,y:e.clientY,moved:false,aim:null};skillButton.setPointerCapture(e.pointerId);});
+skillButton.addEventListener('pointermove',e=>{const a=skillAim;if(!a||a.pointer!==e.pointerId)return;a.x=e.clientX;a.y=e.clientY;if(Math.hypot(a.x-a.x0,a.y-a.y0)>AIM_DEADZONE*(layoutState.scale||1))a.moved=true;});
 // Never dragged out: a tap, cast the default way. Dragged out and back onto the button: cancelled.
 skillButton.addEventListener('pointerup',e=>{const a=skillAim;if(!a||a.pointer!==e.pointerId)return;a.x=e.clientX;a.y=e.clientY;refreshSkillAim(0);if(skillAim===a)endSkillAim(!a.moved||!!a.aim);});
 for(const event of ['pointercancel','lostpointercapture'])skillButton.addEventListener(event,e=>{if(skillAim&&skillAim.pointer===(e as PointerEvent).pointerId)endSkillAim(false);});
-addEventListener('keydown',e=>{if(e.code!=='KeyQ'||e.repeat||skillAim)return;if(canAim()&&mouseAiming)skillAim={pointer:null,x0:0,y0:0,x:0,y:0,moved:true,aim:null};else activateSkill(player);});
+addEventListener('keydown',e=>{if(e.code!=='KeyQ'||e.repeat||skillAim)return;if(canAim()&&mouseAiming)skillAim={pointer:null,x0:0,y0:0,cx:0,cy:0,x:0,y:0,moved:true,aim:null};else activateSkill(player);});
 addEventListener('keyup',e=>{const a=skillAim;if(e.code!=='KeyQ'||!a||a.pointer!==null)return;refreshSkillAim(0);if(skillAim===a)endSkillAim(true);});
 addEventListener('pointerdown',e=>{if(e.button===2&&skillAim?.pointer===null)endSkillAim(false);});addEventListener('contextmenu',e=>{if(running)e.preventDefault();});
 document.querySelector('#missile')!.addEventListener('pointerdown',()=>launchMissile(player));addEventListener('keydown',e=>{if(e.code==='KeyE')launchMissile(player);});
@@ -402,6 +415,8 @@ function updateAimHUD(){const now=performance.now()/1000,dt=Math.min(.1,Math.max
  if(!running||!player.alive||finale||skillAim){aimGuide.hide();reticle.style.display='none';if(bracket)bracket.style.display='none';return;}
  const sol=fireSolution(player),w=weapons[player.weapon],p=player.mesh.position,range=gunRange(player),gunY=p.y+vehicles[player.loadout].gunHeight;
  if(!paused){player.aim=sol.angle;orientTurret(player);}
+ // On a phone the guide line, impact ring and reticle only show while the right pad is being dragged to aim.
+ if(mobileMode&&aimSource()!=='stick'){aimGuide.hide();reticle.style.display='none';}else{
  const fx=-Math.sin(sol.angle),fz=-Math.cos(sol.angle),color=sol.assisted?0xffb24d:sol.beyond?0x9aa3a8:0xe9f3f6;let end:THREE.Vector3;
  if(w.gravity){const vy=lobSpeed(sol.distance,w.speed,w.gravity,sol.rise),path=lobPath(p.x+fx*1.55,gunY,p.z+fz*1.55,sol.angle,sol.distance,w.speed,w.gravity,vy,18),last=path[path.length-1];end=new THREE.Vector3(last.x,last.y,last.z);
   aimGuide.show({x:p.x,z:p.z,angle:sol.angle,length:sol.distance,spread:0,color,arc:path,ring:{x:last.x,z:last.z,radius:w.splash},dim:sol.beyond},dt);}
@@ -409,7 +424,7 @@ function updateAimHUD(){const now=performance.now()/1000,dt=Math.min(.1,Math.max
   end=new THREE.Vector3(p.x+fx*length,sol.assisted&&!blocked?sol.target!.mesh.position.y+1:gunY,p.z+fz*length);
   const splash=w.splash+(player.loadout===3&&(profileStore.data.upgrades[3]?.weapon??0)>=9?.7:0);
   aimGuide.show({x:p.x,z:p.z,angle:sol.angle,length,spread:w.spread,color:blocked?0x9aa3a8:color,ring:splash>0?{x:end.x,z:end.z,radius:splash}:sol.assisted&&!blocked?{x:end.x,z:end.z,radius:.7}:undefined,dim:blocked||!sol.target&&!sol.assisted},dt);}
- const r=screenAt(end);reticle.style.display=r.front?'block':'none';reticle.classList.toggle('locked',sol.assisted);reticle.style.transform=`translate(-50%,-50%) translate(${r.x}px,${r.y}px)`;
+ const r=screenAt(end);reticle.style.display=r.front?'block':'none';reticle.classList.toggle('locked',sol.assisted);reticle.style.transform=`translate(-50%,-50%) translate(${r.x}px,${r.y}px)`;}
  const shown=sol.target??lockActive;if(!bracket)return;if(!shown){bracket.style.display='none';return;}
  const b=screenAt(shown.mesh.position.clone().add(new THREE.Vector3(0,1.1,0))),grow=1+Math.max(0,.25-targetLock.age)*2.4;bracket.style.display=b.front?'block':'none';bracket.className=`${sol.assisted?'on':'idle'}${targetLock.manual&&targetLock.target===shown?' pinned':''}`;bracket.style.transform=`translate(-50%,-50%) translate(${b.x}px,${b.y}px) scale(${grow})`;
  const label=bracket.querySelector('span');if(label){const text=`${targetLock.manual&&targetLock.target===shown?tr('锁定 · ','LOCK · '):''}${Math.round(p.distanceTo(shown.mesh.position))}m`;if(label.textContent!==text)label.textContent=text;}}
@@ -548,7 +563,7 @@ const skillStatus=document.createElement('div');skillStatus.id='skillStatus';gam
 function updateSkillHUD(){const s=skillOf(player),spec=vehicles[player.loadout],kit=skillKits[player.loadout],active=s.cloak>0?s.cloak:s.overdrive>0?s.overdrive:s.dome?s.dome.ttl:0,button=document.querySelector<HTMLElement>('#skill')!;
  if(active>0)button.textContent=`${spec.skill} ${active.toFixed(1)}`;button.classList.toggle('active',active>0);
  const note=s.slow>0?tr('被链钩减速','Slowed by hook'):s.ambush>0?`${tr('伏击','Ambush')} ×${ST.cloak.ambush}`:player.loadout===2&&s.stacks>0?`${tr('蓄能','Charge')} +${Math.round(s.stacks*ST.overdrive.stack*100)}%`:player.loadout===3&&s.still>=ST.barrage.deployAfter?tr('已架设 · 装填加快','Braced · Faster reload'):player.loadout===4&&s.dome?`${tr('已吸收','Absorbed')} ${Math.round(s.dome.absorbed)}`:'';
- const aiming=skillAim,hint=!aiming?'':aiming.pointer===null?tr('松开 Q 释放 · 右键取消','Release Q to cast · Right-click cancels'):!aiming.moved?tr('拖动选择方向','Drag to choose a direction'):aiming.aim?tr('松手释放 · 拖回按钮取消','Release to cast · Drag back to cancel'):tr('松手取消','Release to cancel'),ready=aimable(player)?(mobileMode?tr('就绪 · 拖动瞄准','Ready · Drag to aim'):tr('就绪 · 按住瞄准','Ready · Hold to aim')):tr('就绪','Ready');
+ const aiming=skillAim,hint=!aiming?'':aiming.pointer===null?tr('松开 Q 释放 · 右键取消','Release Q to cast · Right-click cancels'):!aiming.moved?tr('拖动选择方向','Drag to choose a direction'):aiming.aim?tr('松手释放 · 拖回圆心取消','Release to cast · Drag back to the centre to cancel'):tr('松手取消','Release to cancel'),ready=aimable(player)?(mobileMode?tr('就绪 · 拖动瞄准','Ready · Drag to aim'):tr('就绪 · 按住瞄准','Ready · Hold to aim')):tr('就绪','Ready');
  const state=aiming?'aiming':active>0?'active':player.skillTimer>0?'cooling':'ready',text=aiming?`<b>${mobileMode?'':'<kbd>Q</kbd>'}${spec.skill}</b><span>${tr('瞄准中','Aiming')}</span><em><i>${hint}</i></em>`:`<b>${mobileMode?'':'<kbd>Q</kbd>'}${spec.skill}</b><span>${active>0?`${tr('生效','Active')} ${active.toFixed(1)}s`:player.skillTimer>0?`${tr('冷却','Cooldown')} ${Math.ceil(player.skillTimer)}s`:ready}</span><em>${tr('被动','Passive')} · ${kit.passive.name}${note?`<i>${note}</i>`:''}</em>`;
  if(text!==skillStatusText){skillStatusText=text;skillStatus.innerHTML=text;skillStatus.setAttribute('data-state',state);skillStatus.style.setProperty('--accent',kit.accent);}}
 /** Role, active and passive write-up for the selected car on the vehicle page. */
@@ -689,7 +704,7 @@ function resize(){const aspect=layoutState.viewportWidth/layoutState.viewportHei
 const half=(aspect<1?17/aspect:15)/profileStore.data.settings.zoom;baseFov=THREE.MathUtils.radToDeg(2*Math.atan(half/CAMERA_DISTANCE));camera.fov=baseFov;camera.aspect=aspect;camera.updateProjectionMatrix();renderer.setSize(layoutState.viewportWidth,layoutState.viewportHeight);pipeline?.setSize(layoutState.viewportWidth,layoutState.viewportHeight);}
 resize();const cameraFocus=player.mesh.position.clone();
 // dev-only: vehicle body state (slip, airtime) and a pause switch for staging handling screenshots
-if(typeof location!=='undefined'&&location.hostname==='localhost'){(globalThis as any).__body=bodyOf;(globalThis as any).__pause=setPaused;}
+if(typeof location!=='undefined'&&location.hostname==='localhost'){(globalThis as any).__body=bodyOf;(globalThis as any).__pause=setPaused;(globalThis as any).__drift=()=>driftState;}
 // Local development hooks for scripted screenshots; never active on the deployed site.
 if(typeof location!=='undefined'&&location.hostname==='localhost'){(globalThis as any).__player=player;(globalThis as any).__cars=cars;(globalThis as any).__match=()=>match;(globalThis as any).__damage=damage;(globalThis as any).__hud=(mode?:string)=>{if(mode)selectedMode=mode as Mode;reset();kills=2;assists=3;battleStats.deaths=1;score=340;match.scores=[7,4];updateHUD();};(globalThis as any).__result=(winner:number,mode?:string)=>{if(mode)selectedMode=mode as Mode;match=new Match(selectedMode);match.winner=winner;match.scores=[winner===0?3:1,winner===1?3:1];match.time=63;kills=5;assists=3;score=1460;wave=4;battleStats={damage:1873,shots:212,deaths:1};running=true;endGame();};// dev-only: preview the result screen
 (globalThis as any).__profile=profileStore;(globalThis as any).__show=(page:string)=>{renderUI();showPage(page);};(globalThis as any).__salvage=()=>salvage;(globalThis as any).__skill=activateSkill;(globalThis as any).__skillAim=()=>skillAim;(globalThis as any).__aim={lock:targetLock,velocities,updateTargeting,fireSolution,hitMarker,setPaused,refreshSpotted,marks:hitMarks,place:(c:Car,x:number,z:number,angle:number)=>{c.mesh.position.set(x,driveHeight(x,z,0),z);c.angle=angle;followTerrain(c);},aimNow:()=>{const s=fireSolution(player);player.aim=s.angle;orientTurret(player);return s;}};(globalThis as any).__state=skillOf;(globalThis as any).__fx=(x:number,z:number,n:number)=>burst(new THREE.Vector3(x,terrainHeight(x,z)+.8,z),n);

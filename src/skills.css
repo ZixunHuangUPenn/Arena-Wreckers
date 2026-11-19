@@ -37,3 +37,12 @@ html[data-play-mode=mobile] #gameUI #skillStatus{bottom:auto;top:58px;font-size:
 #gameUI #skill.aiming{border-color:#fff;box-shadow:0 0 0 3px #ffffff33,0 0 16px #ffe9a8;filter:brightness(1.3);z-index:2}
 #gameUI #skillStatus[data-state=aiming]{box-shadow:0 0 16px -2px var(--accent)}
 #gameUI #skillStatus[data-state=aiming] em{color:#fff}
+/* Touch skill aim pad: the ring is the skill's full reach, the knob is the finger, the centre disc cancels. */
+#gameUI #skillPad{display:none;position:absolute;width:calc(var(--full) * 2);height:calc(var(--full) * 2);margin:calc(var(--full) * -1) 0 0 calc(var(--full) * -1);border-radius:50%;pointer-events:none;z-index:1;border:2px solid #ffe9a8bb;background:radial-gradient(circle,#ffe9a800 0 40%,#ffe9a81c 70%,#ffe9a833 100%);box-shadow:0 0 0 1px #0007,inset 0 0 0 1px #0006}
+#gameUI #skillPad::before{content:"";position:absolute;inset:25%;border-radius:50%;border:1px dashed #ffffff40}
+#gameUI #skillPad::after{content:"";position:absolute;inset:50% 0 auto;border-top:1px dashed #ffffff26}
+#gameUI #skillPad i{position:absolute;left:50%;top:50%;width:calc(var(--dead) * 2);height:calc(var(--dead) * 2);margin:calc(var(--dead) * -1) 0 0 calc(var(--dead) * -1);border-radius:50%;background:#0d151899;border:1px solid #ffffff55}
+#gameUI #skillPad b{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff7d6,#e1bd7c 60%,#8a6a35);box-shadow:0 0 12px #ffe9a8,0 2px 6px #000a}
+#gameUI #skillPad span{position:absolute;left:50%;top:-24px;transform:translateX(-50%);padding:2px 8px;border-radius:5px;background:#0d1518d9;color:#ffe9a8;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+#gameUI #skillPad span:empty{display:none}
+#gameUI #skillPad.cancel{border-color:#ff8a7a99}#gameUI #skillPad.cancel i{background:#ff6a5a55;border-color:#ff8a7a}

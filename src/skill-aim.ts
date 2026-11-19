@@ -2,10 +2,11 @@
 // direction and distance, and the indicator drawn on the ground while the player is choosing.
 import * as THREE from 'three';
 
-/** A drag shorter than this (CSS px) is still a tap. */
-export const AIM_DEADZONE=16;
-/** Drag length (CSS px) that reaches the far end of the skill's range. */
-export const AIM_FULL=96;
+/** A drag shorter than this (game-UI px) is still a tap, and dragging back inside it cancels. */
+export const AIM_DEADZONE=14;
+/** Drag length (game-UI px) that reaches the far end of the skill's range. Everything between the dead zone and this
+ * maps linearly onto the range, so any spot inside the reach circle can be picked; the on-screen pad shows the scale. */
+export const AIM_FULL=118;
 /** What the player chose: heading (0 faces −z, like `car.aim`) and how far along the skill's range, 0..1. */
 export type SkillAim={angle:number;power:number};
 /** Reads a drag from the skill button. `heading` turns a screen vector into a world heading. */
