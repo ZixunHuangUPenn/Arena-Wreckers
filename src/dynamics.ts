@@ -64,8 +64,9 @@ export function collisionImpulse(ma:number,mb:number,closing:number,restitution=
  */
 export type ReverseState={hold:number;reversing:boolean};
 export const REVERSE_CONE=50*Math.PI/180,REVERSE_HOLD=.25,REVERSE_RELEASE=80*Math.PI/180;
-export function screenDrive(state:ReverseState,heading:number,angle:number,speed:number,magnitude:number,dt:number){
- if(magnitude<=.12){state.hold=0;state.reversing=false;return {turn:0,throttle:0};}
+export function screenDrive(state:ReverseState,heading:number,angle:number,speed:number,magnitude:number,dt:number,allowReverse=true){
+ if(magnitude<=.12||!allowReverse){state.hold=0;state.reversing=false;}if(magnitude<=.12)return {turn:0,throttle:0};
+ if(!allowReverse){const ahead=angleDelta(heading,angle),flip=speed<-.5?-1:1;return {turn:Math.max(-1,Math.min(1,-ahead*2))*flip,throttle:Math.min(1,magnitude)};}
  const ahead=angleDelta(heading,angle),behind=angleDelta(heading,angle+Math.PI);
  if(!state.reversing){state.hold=Math.abs(behind)<REVERSE_CONE?state.hold+dt:0;if(state.hold>=REVERSE_HOLD-1e-9)state.reversing=true;}
  else if(Math.abs(ahead)<Math.PI-REVERSE_RELEASE){state.reversing=false;state.hold=0;}

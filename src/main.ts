@@ -71,7 +71,7 @@ const deviceCard=(m:PlayMode)=>`<button data-play="${m}"><b>${deviceName(m)}</b>
 picker.innerHTML = `<div class="welcome-lang segmented" role="group" aria-label="Language / 语言"><button data-lang="zh" class="${lang==='zh'?'selected':''}">中文</button><button data-lang="en" class="${lang==='en'?'selected':''}">English</button></div><div class="welcome-brand"><b>ARENA</b><span>WRECKERS</span></div><p class="welcome-lead">${tr('废土竞技场 · 车辆战斗','Wasteland arena · Vehicle combat')}</p><label class="welcome-name"><span>${tr('车手名','Driver name')}</span><input id="driverName" maxlength="24" required autocomplete="nickname" placeholder="${tr('输入你的名字','Enter your name')}"></label><p class="welcome-ask">${tr('AI 难度','AI difficulty')}</p><div class="welcome-diff segmented"><button data-diff="easy">${tr('轻松','Easy')}</button><button data-diff="normal" class="selected">${tr('标准','Normal')}</button><button data-diff="hard">${tr('挑战','Hard')}</button></div><p class="welcome-ask">${tr('操作设备 · 已按本机自动选择','Device · picked automatically for this screen')}</p><div class="welcome-options">${deviceCard('mobile')}${deviceCard('web')}</div><button class="welcome-start" value="start">${tr('开始游戏','Start')} ▶</button><p class="welcome-foot">${tr('进度自动保存在本机 · 语言和设备可随时在设置中切换','Progress saves on this device · Change language or device any time in Settings')}</p>`;
 app.append(picker);
 picker.addEventListener('cancel', event => event.preventDefault());
-const touchHelp = tr('左侧驾驶（推向车尾倒车）· 高速急转自动漂移 · 按住开火自动瞄准 · 点敌车锁定 · 拖动手动瞄准','Left side drives (push to the tail to reverse) · Turn hard at speed to drift · Hold fire to auto-aim · Tap an enemy to lock · Drag to aim by hand');
+const touchHelp = tr('左侧驾驶 · 高速急转自动漂移 · 按住开火自动瞄准 · 点敌车锁定 · 拖动手动瞄准','Left side drives · Turn hard at speed to drift · Hold fire to auto-aim · Tap an enemy to lock · Drag to aim by hand');
 const webHelp = tr('WASD 驾驶 · Shift 漂移 · 空格自动瞄准开火 · 鼠标指向或 Tab 切换目标 · E 导弹 · Q 技能（按住瞄准）· Esc 暂停','WASD drive · Shift drift · Space auto-aims and fires · Point the mouse or press Tab to pick a target · E missile · Q skill (hold to aim) · Esc pause');
 let driver='';
 let variants=profileStore.data.variants;
@@ -329,6 +329,8 @@ function landed(c:Car,speed:number){const power=Math.min(1,speed/12),p=c.mesh.po
 // Dry gorges are not lethal: every car, small or heavy, is stopped at the rim by an invisible wall.
 function fallCheck(c:Car){const p=c.mesh.position;if(!c.alive||terrainHazard(p.x,p.z)!==2)return;const deck=deckHeight(p.x,p.z);if(deck!==null&&p.y>deck-1.4)return;{const f=fluidSurface(p.x,p.z);if(bodyOf(c).air>0&&!(f&&p.y<f.level+.4))return;}/* still in the air over it */c.invulnerable=0;c.shield=0;if(c.player)toast(tr('坠落！','Fell in!'),1.5);damage(c,c.hp+1,undefined,'fall');}
 const keys=new Set<string>();let driveX=0,driveY=0,aimX=0,aimY=0,driveId:number|null=null,aimId:number|null=null,mouseAiming=false;let touchFire=false;
+/** The player never drives backwards (owner's call, 2026-11-19): pointing the stick at the tail turns the car round, S brakes. AI cars still back out when stuck. */
+const PLAYER_REVERSE=false;
 const reverseState:ReverseState={hold:0,reversing:false},driftState:AutoDriftState={on:false,time:0};
 /**
  * The player's car. Screen-direction driving (stick or WASD, the default): the car heads where the input points, and
@@ -337,8 +339,8 @@ const reverseState:ReverseState={hold:0,reversing:false},driftState:AutoDriftSta
  */
 function playerDrive(c:Car,dt:number){const kx=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),ky=(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0),shift=keys.has('ShiftLeft')||keys.has('ShiftRight'),touch=Math.hypot(driveX,driveY)>.12;
  if(!touch){driftState.on=false;driftState.time=0;}
- if(profileStore.data.settings.carKeys&&!touch){reverseState.hold=0;reverseState.reversing=false;moveCar(c,dt,kx,-ky,shift);return;}
- const x=driveX+kx,y=driveY+ky,heading=screenHeading(x,y),d=screenDrive(reverseState,heading,c.angle,c.speed,Math.min(1,Math.hypot(x,y)),dt);
+ if(profileStore.data.settings.carKeys&&!touch){reverseState.hold=0;reverseState.reversing=false;moveCar(c,dt,kx,ky>0&&!PLAYER_REVERSE?(c.speed>.5?-1:0):-ky,shift);return;}
+ const x=driveX+kx,y=driveY+ky,heading=screenHeading(x,y),d=screenDrive(reverseState,heading,c.angle,c.speed,Math.min(1,Math.hypot(x,y)),dt,PLAYER_REVERSE);
  // Phones have no drift button: a sudden hard turn on the stick at speed pulls the handbrake by itself.
  const slide=touch&&autoDrift(driftState,angleDelta(heading,c.angle),c.speed/Math.max(1,carSpec(c).speed),dt,reverseState.reversing);
  moveCar(c,dt,d.turn,d.throttle,shift||slide);}
@@ -426,7 +428,7 @@ document.querySelector('#pauseLayout')?.addEventListener('click',()=>{layoutEdit
 const COACH_KEY='arena-coached';let coachTimer=0;
 function coached(){try{return typeof localStorage!=='undefined'&&localStorage.getItem(COACH_KEY+(mobileMode?'-touch':'-keys'))==='1';}catch{return true;}}
 function showCoach(){const el=document.querySelector<HTMLElement>('#coach')!;app.classList.toggle('coached',coached());if(coached()){el.hidden=true;return;}
- const rows=mobileMode?[['◎',tr('左半屏按下拖动：驾驶（往车尾方向按住会倒车）','Touch and drag on the left: drive (hold towards the tail to reverse)')],['◉',tr('右下大按钮：按住开火，拖动瞄准','Big button, bottom right: hold to fire, drag to aim')],['✦',tr('技能按钮：点按释放，部分技能可拖动瞄准','Skill button: tap to use; some skills drag to aim')],['➶',tr('导弹按钮：自动追踪锁定的目标','Missile button: homes in on your locked target')]]:[['W A S D',tr('驾驶（往车尾方向按住会倒车）','Drive (hold towards the tail to reverse)')],['Space',tr('自动瞄准并开火，鼠标指向切换目标','Auto-aim and fire; point the mouse to pick a target')],['Q / E',tr('Q 技能（按住瞄准）· E 导弹','Q skill (hold to aim) · E missile')],['Shift',tr('手刹漂移，漂移会给技能充能','Handbrake drift; drifting charges your skill')]];
+ const rows=mobileMode?[['◎',tr('左半屏按下拖动：车会开向你推的方向','Touch and drag on the left: the car drives the way you push')],['◉',tr('右下大按钮：按住开火，拖动瞄准','Big button, bottom right: hold to fire, drag to aim')],['✦',tr('技能按钮：点按释放，部分技能可拖动瞄准','Skill button: tap to use; some skills drag to aim')],['➶',tr('导弹按钮：自动追踪锁定的目标','Missile button: homes in on your locked target')]]:[['W A S D',tr('驾驶（车头朝按键方向开）','Drive (the car heads the way you press)')],['Space',tr('自动瞄准并开火，鼠标指向切换目标','Auto-aim and fire; point the mouse to pick a target')],['Q / E',tr('Q 技能（按住瞄准）· E 导弹','Q skill (hold to aim) · E missile')],['Shift',tr('手刹漂移，漂移会给技能充能','Handbrake drift; drifting charges your skill')]];
  el.innerHTML=`<div class="coach-card"><strong>${tr('操作说明','How to play')}</strong>${rows.map(([k,t])=>`<p><kbd>${k}</kbd><span>${t}</span></p>`).join('')}<small>${tr('点击或按任意键开始 · 之后可在暂停菜单查看','Tap or press any key to start · Find this again in the pause menu')}</small></div>`;el.hidden=false;coachTimer=9;}
 function dismissCoach(){const el=document.querySelector<HTMLElement>('#coach');if(!el||el.hidden)return;el.hidden=true;coachTimer=0;try{localStorage.setItem(COACH_KEY+(mobileMode?'-touch':'-keys'),'1');}catch{}app.classList.add('coached');}
 addEventListener('pointerdown',()=>{if(running)dismissCoach();},true);addEventListener('keydown',()=>{if(running)dismissCoach();},true);
