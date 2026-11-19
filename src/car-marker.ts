@@ -22,8 +22,9 @@ export class CarMarker{
   * the world but before the car itself, with an inverted depth test, so it only shows where the car is hidden.
   */
  attach(visual:THREE.Object3D|undefined){if(this.target===visual)return;for(const g of this.ghosts)g.removeFromParent();this.ghosts=[];this.target=visual??null;if(!visual)return;
-  const meshes:THREE.Mesh[]=[];visual.traverse(o=>{if(o instanceof THREE.Mesh&&o.name!=='scar'&&o.name!=='xray'&&o.name!=='glass'&&o.name!=='beam'&&o.name!=='pool')meshes.push(o);});
-  for(const m of meshes){m.renderOrder=Math.max(m.renderOrder,3);const ghost=new THREE.Mesh(m.geometry,this.xray);ghost.name='xray';ghost.renderOrder=2;ghost.castShadow=ghost.receiveShadow=false;ghost.frustumCulled=false;m.add(ghost);this.ghosts.push(ghost);}}
+  const meshes:THREE.Mesh[]=[];// Every opaque part of the car (glass included) must draw after the ghosts, or it would cover them in the depth buffer.
+  visual.traverse(o=>{if(!(o instanceof THREE.Mesh)||o.name==='scar'||o.name==='xray'||o.name==='beam'||o.name==='pool')return;o.renderOrder=Math.max(o.renderOrder,3);if(o.name!=='glass')meshes.push(o);});
+  for(const m of meshes){const ghost=new THREE.Mesh(m.geometry,this.xray);ghost.name='xray';ghost.renderOrder=2;ghost.castShadow=ghost.receiveShadow=false;ghost.frustumCulled=false;m.add(ghost);this.ghosts.push(ghost);}}
  /** Rides on the car (so it tilts with the ground under it). Hidden when the match is not running. */
  update(dt:number,car:THREE.Object3D,show:boolean){this.pulse+=dt;if(this.ring.parent!==car){car.add(this.ring);this.ring.position.set(0,.07,0);}this.ring.visible=show;for(const g of this.ghosts)g.visible=show;if(!show)return;const k=1+Math.sin(this.pulse*3.2)*.04;this.ring.scale.set(k,1,k);(this.ring.material as THREE.MeshBasicMaterial).opacity=.62+Math.sin(this.pulse*3.2)*.12;}
 }

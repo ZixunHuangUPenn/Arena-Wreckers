@@ -29,11 +29,11 @@ function scarTexture(){const f=64,w=f*4,data=new Uint8Array(w*f*4);let seed=7;co
  const t=new THREE.DataTexture(data,w,f,THREE.RGBAFormat);t.magFilter=t.minFilter=THREE.LinearFilter;t.needsUpdate=true;return t;}
 
 /** Charred body shader: soot black with glowing embers in the cracks that cool down over the wreck's life. */
-function charMaterial(base:THREE.Color,metal:boolean,heat:{value:number}){const m=new THREE.MeshStandardMaterial({name:'Charred',color:base,roughness:metal?.7:.95,metalness:metal?.45:.1});
+function charMaterial(base:THREE.Color,metal:boolean,heat:{value:number}){const m=new THREE.MeshStandardMaterial({name:'Charred',color:base,roughness:metal?.75:.97,metalness:metal?.3:0});
  m.onBeforeCompile=shader=>{shader.uniforms.uWear={value:vehicleWearMap()};shader.uniforms.uHeat=heat;
   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vCharPos;').replace('#include <begin_vertex>','#include <begin_vertex>\nvCharPos=position;');
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nuniform sampler2D uWear;uniform float uHeat;varying vec3 vCharPos;')
-   .replace('#include <color_fragment>','#include <color_fragment>\nvec4 cw=texture2D(uWear,vCharPos.xz*.7+vCharPos.y*.3);float ash=smoothstep(.45,.85,cw.r);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.13,.12,.11),ash*.6);')
+   .replace('#include <color_fragment>','#include <color_fragment>\nvec4 cw=texture2D(uWear,vCharPos.xz*.7+vCharPos.y*.3);float ash=smoothstep(.45,.85,cw.r);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.045,.042,.04),ash*.7);')
    .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.6,.45,.08)*uHeat*smoothstep(.62,.9,cw.g+cw.b*.4)*(1.-ash);');};
  m.customProgramCacheKey=()=>'aw-char';return m;}
 
@@ -58,7 +58,7 @@ export class Wrecks{
   this.ray.set(from,along);this.ray.far=8;const targets:THREE.Object3D[]=[];body.traverse(o=>{if(o instanceof THREE.Mesh&&o.name!=='glass'&&o.name!=='scar'&&o.visible)targets.push(o);});
   const hitInfo=this.ray.intersectObjects(targets,false)[0];if(!hitInfo||!hitInfo.face)return;const mesh=hitInfo.object;
   const scars=(visual.userData.scars??=[]) as THREE.Mesh[];if(scars.length>=WRECK.maxScars){const old=scars.shift()!;old.parent?.remove(old);old.geometry.dispose();}
-  const size=[.32,.46,.55,.9][kind]??.4,geo=this.scarGeo.clone(),uv=geo.attributes.uv as THREE.BufferAttribute;for(let i=0;i<uv.count;i++)uv.setX(i,(kind+uv.getX(i))/4);
+  const size=[.55,.75,.85,1.3][kind]??.6,geo=this.scarGeo.clone(),uv=geo.attributes.uv as THREE.BufferAttribute;for(let i=0;i<uv.count;i++)uv.setX(i,(kind+uv.getX(i))/4);
   const scar=new THREE.Mesh(geo,this.scarMat);scar.name='scar';scar.renderOrder=2;const normal=hitInfo.face.normal.clone();
   const local=mesh.worldToLocal(hitInfo.point.clone());scar.position.copy(local).addScaledVector(normal,.012);scar.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),normal);scar.rotateZ(Math.random()*6.28);scar.scale.setScalar(size*(.8+Math.random()*.4));mesh.add(scar);scars.push(scar);}
  /** Removes every scar from a car (on respawn). */
@@ -69,7 +69,7 @@ export class Wrecks{
   */
  spawn(car:THREE.Object3D,visual:THREE.Object3D,paint:number,hx:number,hz:number,push:THREE.Vector3):Wreck{
   const keep=visual.userData;visual.userData={};const shell=visual.clone(true);visual.userData=keep;
-  const heat={value:1},paintChar=charMaterial(new THREE.Color(paint).multiplyScalar(.14).add(new THREE.Color(.03,.028,.026)),false,heat),metal=charMaterial(new THREE.Color(.06,.058,.055),true,heat),glass=new THREE.MeshStandardMaterial({color:0x050505,roughness:.35,metalness:.2});
+  const heat={value:1},paintChar=charMaterial(new THREE.Color(paint).multiplyScalar(.05).add(new THREE.Color().setRGB(.008,.007,.006)),false,heat),metal=charMaterial(new THREE.Color().setRGB(.014,.013,.012),true,heat),glass=new THREE.MeshStandardMaterial({color:0x050505,roughness:.35,metalness:.2});
   shell.traverse(o=>{if(o instanceof THREE.Mesh&&o.name!=='scar'){o.material=o.name==='paint'?paintChar:o.name==='glass'?glass:metal;}});
   // Strip the beams of the night headlights; a wreck has no power.
   shell.getObjectByName('headlights')?.removeFromParent();

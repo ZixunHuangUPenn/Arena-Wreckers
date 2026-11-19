@@ -1,7 +1,8 @@
 export type Insets={left:number;right:number;top:number;bottom:number};
 export type GameLayout={x:number;y:number;width:number;height:number;scale:number;viewportWidth:number;viewportHeight:number;menuX:number;menuY:number;menuWidth:number;menuHeight:number;menuScale:number;portrait:boolean};
+/** The menu needs at least 960 logical px across in landscape (garage: stats card, turntable, skill panel), or the right edge is cut off. */
 export function fitGameLayout(width:number,height:number,safe:Insets={left:0,right:0,top:0,bottom:0}):GameLayout{
- const portrait=height>width,logicalWidth=portrait?540:960,logicalHeight=portrait?960:540,w=Math.max(1,width-safe.left-safe.right),h=Math.max(1,height-safe.top-safe.bottom),scale=Math.min(w/logicalWidth,h/logicalHeight),menuScale=Math.min(w/(portrait?480:800),h/(portrait?880:440),1.8),menuWidth=w/menuScale,menuHeight=h/menuScale;
+ const portrait=height>width,logicalWidth=portrait?540:960,logicalHeight=portrait?960:540,w=Math.max(1,width-safe.left-safe.right),h=Math.max(1,height-safe.top-safe.bottom),scale=Math.min(w/logicalWidth,h/logicalHeight),menuScale=Math.min(w/(portrait?480:960),h/(portrait?880:440),1.8),menuWidth=w/menuScale,menuHeight=h/menuScale;
  return {x:safe.left+(w-logicalWidth*scale)/2,y:safe.top+(h-logicalHeight*scale)/2,width:logicalWidth,height:logicalHeight,scale,viewportWidth:width,viewportHeight:height,menuX:safe.left,menuY:safe.top,menuWidth,menuHeight,menuScale,portrait};
 }
 export function projectToGameUI(ndc:{x:number;y:number},layout:GameLayout){return {x:((ndc.x+1)*layout.viewportWidth/2-layout.x)/layout.scale,y:((1-ndc.y)*layout.viewportHeight/2-layout.y)/layout.scale};}

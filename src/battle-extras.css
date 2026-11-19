@@ -41,7 +41,8 @@
 #pauseLayer .pause-help{margin:4px 0;font-size:12px;color:#c9d4d1}
 html[data-play-mode=mobile] #pauseLayer .keys-only,html:not([data-play-mode=mobile]) #pauseLayer .touch-only{display:none}
 /* Button layout editor. */
-#app.layout-editing #gameUI{display:block!important;z-index:60;background:#081014ee;pointer-events:auto}
+#app.layout-editing::after{content:'';position:fixed;inset:0;background:#081014e6;z-index:59}
+#app.layout-editing #gameUI{display:block!important;z-index:60;pointer-events:auto}
 #app.layout-editing #gameUI>*:not(#controls):not(#layoutBar){visibility:hidden}
 #app.layout-editing #gameUI #controls,#app.layout-editing #gameUI #controls>*,#app.layout-editing #gameUI #actions>*{display:block;visibility:visible;pointer-events:auto}
 #app.layout-editing #gameUI #actions .round-action{display:grid}

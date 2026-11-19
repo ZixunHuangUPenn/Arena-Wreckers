@@ -76,7 +76,7 @@ export class CombatEffects{
   if(power<.4){this.sparks(p,Math.round(4+power*10),7);this.emit(FIRE,p,[0,0,0],.09,.5,1.3,[3,2.2,1.2],[2,.8,.2],.9);this.emit(SMOKE,p,[(Math.random()-.5)*1.5,1+Math.random(),(Math.random()-.5)*1.5],.55,.5,1.4,[.3,.28,.26],[.45,.43,.4],.5);return;}
   const scale=Math.sqrt(power),ground=terrainHeight(p.x,p.z),onGround=p.y-ground<2.5;
   this.emit(FIRE,p,[0,0,0],.12,2.6*scale,7*scale,[6,5.2,3.6],[3,1.4,.3],1); // white-hot flash
-  for(let i=0;i<Math.round(7*scale);i++){const a=Math.random()*6.28,s=(1+Math.random()*3)*scale;this.emit(FLAME,{x:p.x+Math.cos(a)*.4*scale,y:p.y+.2+Math.random()*.6,z:p.z+Math.sin(a)*.4*scale},[Math.cos(a)*s,1.4+Math.random()*2.6*scale,Math.sin(a)*s],.55+Math.random()*.4,1.6*scale,(3.4+Math.random()*1.6)*scale,[3.4,2.1,.8],[1.6,.45,.08],1,2.4,-1.2);}
+  for(let i=0;i<Math.round(7*scale);i++){const a=Math.random()*6.28,s=(1+Math.random()*3)*scale;this.emit(FLAME,{x:p.x+Math.cos(a)*.4*scale,y:p.y+.2+Math.random()*.6,z:p.z+Math.sin(a)*.4*scale},[Math.cos(a)*s,1.4+Math.random()*2.6*scale,Math.sin(a)*s],.55+Math.random()*.4,1.5*scale,(3.1+Math.random()*1.4)*scale,[2.3,1.35,.5],[1,.28,.05],.85,2.4,-1.2);}
   for(let i=0;i<Math.round(6*scale);i++){const a=Math.random()*6.28,s=(1.5+Math.random()*4.5)*scale;this.emit(FIRE,{x:p.x+Math.cos(a)*.3,y:p.y+Math.random()*.5,z:p.z+Math.sin(a)*.3},[Math.cos(a)*s,1.2+Math.random()*3.4*scale,Math.sin(a)*s],.3+Math.random()*.3,1*scale,(2.2+Math.random()*1.2)*scale,[4.2,2.4,.7],[1.4,.22,.03],1,2.6,-1.5);}
   for(let i=0;i<Math.round(9*scale);i++){const a=Math.random()*6.28,s=(.6+Math.random()*2.2)*scale,shade=.04+Math.random()*.07;this.emit(SMOKE,{x:p.x+Math.cos(a)*.5,y:p.y+.5+Math.random()*.9,z:p.z+Math.sin(a)*.5},[Math.cos(a)*s,1.4+Math.random()*2.4,Math.sin(a)*s],1.8+Math.random()*1.8,1.4*scale,(3.8+Math.random()*2.2)*scale,[shade,shade,shade],[.28,.27,.26],.82,1,-.7);}
   this.sparks(p,Math.round((this.theme===1?26:16)*scale),13*scale);
@@ -150,7 +150,7 @@ export class CombatEffects{
  /** Smoke and small flames rising from a burnt-out wreck; `heat` 1 just destroyed, 0 cold. */
  smolder(p:THREE.Vector3,heat:number,dt:number){const due=(this.rates.get('wreck')??0)+dt*(4+heat*10);let n=Math.floor(due);this.rates.set('wreck',due-n);
   for(;n>0;n--){const x=p.x+(Math.random()-.5)*1.6,z=p.z+(Math.random()-.5)*2.2;this.emit(SMOKE,{x,y:p.y+.9,z},[(Math.random()-.5)*.6,1.4+Math.random(),(Math.random()-.5)*.6],2+Math.random(),.7,2.8,[.06,.06,.06],[.3,.3,.3],.55,.7,-.2);
-   if(Math.random()<heat)this.emit(FLAME,{x,y:p.y+.8,z},[0,1.6+Math.random(),0],.5+Math.random()*.3,.7,1.3,[3.2,1.6,.45],[1.3,.3,.05],.85,1);}}
+   if(Math.random()<heat*.6)this.emit(FLAME,{x,y:p.y+.7,z},[0,1.2+Math.random(),0],.45+Math.random()*.25,.6,1.1,[1.7,.85,.25],[.7,.18,.03],.7,1);}}
  /**
   * Weather close to the camera: wind-blown sand streaks on the desert, sparks and steam in the foundry, falling
   * snow on the frost arena and ash with rising embers in the caldera. A few dozen particles at most.

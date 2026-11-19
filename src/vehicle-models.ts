@@ -502,10 +502,10 @@ export function setVehicleDust(visual:THREE.Object3D,color:number){for(const w o
 let beamTexture:THREE.DataTexture|null=null;
 /** Soft radial pool used for the ground spot of a headlight and the cone's falloff. */
 function beamPool(){if(beamTexture)return beamTexture;const n=64,data=new Uint8Array(n*n*4);for(let y=0;y<n;y++)for(let x=0;x<n;x++){const u=(x+.5)/n*2-1,v=(y+.5)/n*2-1,r=Math.min(1,Math.hypot(u*1.25,v));const a=Math.pow(1-r,1.6),i=(y*n+x)*4;data[i]=data[i+1]=data[i+2]=255;data[i+3]=a*255;}beamTexture=new THREE.DataTexture(data,n,n,THREE.RGBAFormat);beamTexture.magFilter=beamTexture.minFilter=THREE.LinearFilter;beamTexture.needsUpdate=true;return beamTexture;}
-const beamMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,uniforms:{uColor:{value:new THREE.Color(0xffe6b8)},uStrength:{value:.32}},
+const beamMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,uniforms:{uColor:{value:new THREE.Color(0xffe6b8)},uStrength:{value:.15}},
  vertexShader:'varying float vAlong;varying vec3 vN;varying vec3 vV;void main(){vAlong=uv.y;vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
- fragmentShader:'uniform vec3 uColor;uniform float uStrength;varying float vAlong;varying vec3 vN;varying vec3 vV;void main(){float edge=pow(abs(dot(normalize(vN),normalize(vV))),1.4);float a=uStrength*pow(vAlong,1.8)*edge;gl_FragColor=vec4(uColor*a,1.);}'});
-const poolMaterial=new THREE.MeshBasicMaterial({color:0xffdcaa,transparent:true,opacity:.55,depthWrite:false,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+ fragmentShader:'uniform vec3 uColor;uniform float uStrength;varying float vAlong;varying vec3 vN;varying vec3 vV;void main(){float edge=pow(abs(dot(normalize(vN),normalize(vV))),1.4);float a=uStrength*pow(vAlong,2.4)*edge*edge;gl_FragColor=vec4(uColor*a,1.);}'});
+const poolMaterial=new THREE.MeshBasicMaterial({color:0xffdcaa,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
 /**
  * Fake headlight beams for the night arena: two additive volumetric cones out of the front lamps and a light
  * pool on the ground ahead. Costs four transparent draws per car instead of real spot lights on every surface.
